@@ -1,0 +1,10 @@
+{
+  "outputDirectory": "frontend",
+  "cleanUrls": true,
+  "crons": [
+    {
+      "path": "/api/cron/release-no-shows",
+      "schedule": "0 8 * * *"
+    }
+  ]
+}

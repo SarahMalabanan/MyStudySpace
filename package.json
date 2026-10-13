@@ -1,0 +1,28 @@
+{
+  "name": "mystudyspace",
+  "version": "1.0.0",
+  "description": "MyStudySpace is a study room availability and reservation system that overlooks and manages Kean University's library's study spaces. This is part of our group's CPS4301-Software Engineering class project.",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs",
+    "lib": "lib"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SarahMalabanan/MyStudySpace.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/SarahMalabanan/MyStudySpace/issues"
+  },
+  "homepage": "https://github.com/SarahMalabanan/MyStudySpace#readme",
+  "dependencies": {
+    "mysql2": "^3.24.6"
+  }
+}
