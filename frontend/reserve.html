@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reserve | MyStudySpace</title>
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/reserve.css">
+</head>
+<body>
+  <header class="topbar">
+    <span class="logo">MyStudySpace</span>
+    <nav>
+      <a href="index.html" class="active">Find a Room</a>
+      <a href="my-reservations.html">My Reservations</a>
+    </nav>
+    <div class="avatar" title="Account">NT</div>
+  </header>
+
+  <main class="layout three">
+    <aside class="panel" id="room-info"></aside>
+
+    <section class="panel">
+      <h2>Select date &amp; time</h2>
+      <div class="times">
+        <div><label for="date">Date</label><input type="date" id="date"></div>
+        <div><label for="start">Start time</label><select id="start"></select></div>
+        <div><label for="end">End time</label><select id="end"></select></div>
+      </div>
+      <ol class="rules">
+        <h3>Reservation &amp; library rules</h3>
+        <li>Reservations last up to 2 hours.</li>
+        <li>Check in within 15 minutes of your start time, or the room is released.</li>
+        <li>Keep noise low and leave the room clean.</li>
+        <li>Cancel ahead of time if your plans change.</li>
+      </ol>
+    </section>
+
+    <aside class="panel summary">
+      <h2>Summary</h2>
+      <dl>
+        <dt>Room</dt><dd id="s-room"></dd>
+        <dt>Date</dt><dd id="s-date"></dd>
+        <dt>Time</dt><dd id="s-time"></dd>
+        <dt>Location</dt><dd id="s-floor"></dd>
+      </dl>
+      <p class="msg" id="msg"></p>
+      <button class="btn" id="confirm">Confirm reservation</button>
+      <button class="btn secondary" id="cancel">Cancel</button>
+    </aside>
+  </main>
+
+  <script src="js/mock-data.js"></script>
+  <script src="js/utils.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/reserve.js"></script>
+</body>
+</html>

@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Find a Room | MyStudySpace</title>
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/rooms.css">
+</head>
+<body>
+  <header class="topbar">
+    <span class="logo">MyStudySpace</span>
+    <nav>
+      <a href="index.html" class="active">Find a Room</a>
+      <a href="my-reservations.html">My Reservations</a>
+    </nav>
+    <span class="location">Nancy Thompson Learning Commons</span>
+    <div class="avatar" title="Account">NT</div>
+  </header>
+
+  <main class="layout three">
+    <aside class="panel">
+      <h2>Search filters</h2>
+      <label for="date">Date</label>
+      <input type="date" id="date">
+      <label for="time">Time</label>
+      <select id="time"></select>
+      <label for="floor">Floor</label>
+      <select id="floor">
+        <option value="2">Second Floor</option>
+        <option value="3">Third Floor</option>
+      </select>
+      <label>Accessories</label>
+      <label class="check"><input type="checkbox" id="f-whiteboard"> Whiteboard</label>
+      <label class="check"><input type="checkbox" id="f-window"> Window</label>
+      <label class="check"><input type="checkbox" id="f-outlet"> Outlet</label>
+      <button class="btn" id="search">Search rooms</button>
+    </aside>
+
+    <section class="panel">
+      <div class="tabs" id="tabs"></div>
+      <div class="map" id="map"></div>
+      <div class="legend"><span>Available</span><span class="u">Unavailable</span><span class="s">Selected</span></div>
+    </section>
+
+    <aside class="panel" id="detail"></aside>
+  </main>
+
+  <script src="js/mock-data.js"></script>
+  <script src="js/utils.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/rooms.js"></script>
+</body>
+</html>
