@@ -11,8 +11,7 @@ function readFilters() {
 }
 
 function isAvailable(r) {
-  return !r.booked.includes(applied.hour)
-    && (!applied.whiteboard || r.whiteboard)
+  return (!applied.whiteboard || r.whiteboard)
     && (!applied.window || r.window)
     && (!applied.outlet || r.outlet);
 }
@@ -30,15 +29,13 @@ function renderTabs() {
 
 function renderMap() {
   const map = $('map');
-  map.innerHTML = '<div class="foyer">FLOOR FOYER</div>';
+  map.innerHTML = '';
   rooms.filter((r) => r.floor === state.floor).forEach((r) => {
     const tile = document.createElement('button');
     const ok = isAvailable(r);
     tile.className = 'tile' + (ok ? '' : ' unavailable') + (state.selected === r.id ? ' selected' : '');
-    tile.textContent = r.id;
+    tile.textContent = r.room_code;
     tile.disabled = !ok;
-    tile.style.gridRow = r.row;
-    tile.style.gridColumn = r.col;
     tile.setAttribute('aria-label', `${r.name}, ${ok ? 'available' : 'unavailable'}`);
     tile.addEventListener('click', () => { state.selected = r.id; render(); });
     map.appendChild(tile);
@@ -69,18 +66,39 @@ function renderDetail() {
 function render() { renderTabs(); renderMap(); renderDetail(); }
 
 async function init() {
-  rooms = await getRooms();
-  $('date').value = today();
-  $('time').innerHTML = hourOptions(8, 20, true);
-  $('time').value = 13;
-  applied = readFilters();
-  state.floor = applied.floor;
-  $('search').addEventListener('click', () => {
+  try {
+    rooms = await getRooms();
+
+    $('date').value = today();
+
+    $('time').innerHTML = hourOptions(8, 20, true);
+    $('time').value = '13';
+
     applied = readFilters();
     state.floor = applied.floor;
-    state.selected = null;
+
+    $('search').addEventListener('click', () => {
+      applied = readFilters();
+      state.floor = applied.floor;
+      state.selected = null;
+      render();
+    });
+
     render();
-  });
-  render();
+
+  } catch (err) {
+    console.error('Error loading rooms:', err);
+
+    $('map').innerHTML = `
+      <p class="empty">
+        Could not load rooms. Please check your database connection.
+      </p>
+    `;
+
+    $('detail').innerHTML = `
+      <h2>Room details</h2>
+      <p class="empty">Rooms could not be loaded.</p>
+    `;
+  }
 }
 init();

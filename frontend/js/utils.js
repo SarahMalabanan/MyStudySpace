@@ -2,7 +2,10 @@ function fmtHour(h) {
   const suffix = h >= 12 ? 'PM' : 'AM';
   return `${((h + 11) % 12) + 1}:00${suffix}`;
 }
-const FLOOR_NAMES = { 2: 'Second Floor', 3: 'Third Floor' };
+const FLOOR_NAMES = {
+  2: 'Second Floor',
+  3: 'Third Floor'
+};
 function today() { return new Date().toISOString().slice(0, 10); }
 function hourOptions(from, to, withRange) {
   let html = '';
