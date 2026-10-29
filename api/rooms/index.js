@@ -16,7 +16,8 @@ module.exports = async (req, res) => {
               seats,
               whiteboard,
               has_window AS window,
-              outlet
+              outlet,
+              photo_url AS photo
        FROM rooms
        WHERE status = 'active'
        ORDER BY library, floor, room_code`

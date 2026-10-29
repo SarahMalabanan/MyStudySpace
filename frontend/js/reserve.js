@@ -25,7 +25,7 @@ async function init() {
   const f = (label, has) => `<li class="${has ? '' : 'no'}">${label}</li>`;
   $('room-info').innerHTML = `
     <h2>${room.name}</h2>
-    <div class="photo">Room photo</div>
+    ${roomPhotoHtml(room)}
     <div>Seats ${room.seats}</div>
     <ul class="features">${f('Whiteboard', room.whiteboard)}${f('Window', room.window)}${f('Outlet', room.outlet)}</ul>
     <div>${FLOOR_NAMES[room.floor]}</div>`;

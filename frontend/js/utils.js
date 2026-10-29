@@ -14,3 +14,9 @@ function hourOptions(from, to, withRange) {
   }
   return html;
 }
+
+function roomPhotoHtml(r) {
+  return r.photo
+    ? `<img class="photo" src="${r.photo}" alt="${r.name}" loading="lazy">`
+    : '<div class="photo">No photo yet</div>';
+}

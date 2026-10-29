@@ -32,4 +32,6 @@ async function createReservation(roomId, date, start, end) {
   localStorage.setItem(STORE_KEY, JSON.stringify(list));
 }
 
-function clearReservations() { localStorage.removeItem(STORE_KEY); }
+function clearReservations() { 
+  localStorage.removeItem(STORE_KEY); 
+}
