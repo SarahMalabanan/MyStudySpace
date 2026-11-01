@@ -196,3 +196,56 @@ module.exports = async function handler(req, res) {
     }
   }
 };
+
+/**
+ * Initializes the Check-In interface.
+ *
+ * The reservation must come from a trusted backend response.
+ * This function does not invent reservation IDs or user accounts.
+ *
+ * @param {Object} reservation - Reservation loaded from the API.
+ */
+function initializeCheckIn(reservation) {
+  const button = document.getElementById("check-in-button");
+  const details = document.getElementById("reservation-details");
+  const message = document.getElementById("check-in-message");
+
+  if (!button || !details || !message) {
+    return;
+  }
+
+  // Do not enable check-in without a valid reservation.
+  if (
+    !reservation ||
+    !Number.isSafeInteger(reservation.reservation_id)
+  ) {
+    button.disabled = true;
+    details.textContent = "No reservation available for check-in.";
+    return;
+  }
+
+  // Display reservation information from the backend.
+  details.textContent =
+    `Reservation #${reservation.reservation_id}`;
+
+  button.disabled = reservation.status !== "confirmed";
+
+  // Handle the student's Check In action.
+  button.addEventListener("click", async () => {
+    button.disabled = true;
+    message.textContent = "Processing check-in...";
+
+    try {
+      const result = await checkInReservation(
+        reservation.reservation_id
+      );
+
+      message.textContent = result.message;
+      button.textContent = "Checked In";
+
+    } catch (error) {
+      message.textContent = error.message;
+      button.disabled = false;
+    }
+  });
+}

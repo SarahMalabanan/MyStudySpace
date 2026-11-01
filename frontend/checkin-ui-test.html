@@ -1,0 +1,54 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Check-In UI Test | MyStudySpace</title>
+  <link rel="stylesheet" href="css/base.css">
+</head>
+<body>
+  <!--
+    MyStudySpace - US-08 Frontend Test
+
+    This page tests the Check In button independently.
+    It does not connect to the real database.
+  -->
+
+  <main>
+    <h1>MyStudySpace</h1>
+    <h2>Check-In Interface Test</h2>
+
+    <section id="reservation-details"></section>
+
+    <button id="check-in-button" type="button" disabled>
+      Check In
+    </button>
+
+    <p id="check-in-message" role="status" aria-live="polite"></p>
+  </main>
+
+  <!-- Load your actual Check-In frontend functions. -->
+  <script src="js/checkin.js"></script>
+
+  <script>
+    /*
+     * Simulate the API response for this test page only.
+     * The real application will use fetch() and MySQL.
+     */
+    checkInReservation = async function (reservationId) {
+      return {
+        success: true,
+        message: "Successfully checked in (TEST ONLY).",
+        reservation_id: reservationId
+      };
+    };
+
+    // Fictional reservation used only for UI testing.
+    initializeCheckIn({
+      reservation_id: 123,
+      status: "confirmed"
+    });
+  </script>
+</body>
+</html>
