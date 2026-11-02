@@ -5,44 +5,49 @@
  * User Story: US-08 - Check In to a Reservation
  * Sprint: 1
  *
- * Description:
- * Handles check-in requests for existing study room
- * reservations and saves valid check-ins to MySQL.
- *
  * Endpoint: POST /api/reservations/checkin
  *
- * Request body:
- * {
- *   "reservation_id": 123
- * }
+ * Description:
+ * Allows an authenticated student to check in to an
+ * existing study room reservation.
  *
- * Important:
- * Authentication must be connected before this endpoint
- * is enabled for real users.
+ * Responsibilities:
+ * 1. Accept POST requests only.
+ * 2. Verify authenticated student identity.
+ * 3. Validate the reservation ID.
+ * 4. Verify reservation ownership and status.
+ * 5. Enforce the configured check-in time window.
+ * 6. Prevent duplicate check-ins.
+ * 7. Save successful check-ins to MySQL.
+ * 8. Return appropriate success or error responses.
+ *
+ * Authentication:
+ * Requires req.user.user_id to be established by
+ * trusted authentication middleware.
+ *
+ * Database:
+ * Uses the shared MySQL connection from lib/db.js.
  */
 
 const pool = require("../../lib/db");
 const { validateCheckIn } = require("../../lib/checkInRules");
 
 /**
- * Sends a JSON response to the client.
+ * Sends a standardized JSON response.
  *
  * @param {Object} res - HTTP response object.
  * @param {number} status - HTTP status code.
- * @param {Object} data - Response payload.
+ * @param {Object} data - Response data.
  */
 function sendResponse(res, status, data) {
   return res.status(status).json(data);
 }
 
 /**
- * Retrieves the authenticated user ID.
+ * Retrieves the authenticated student's ID.
  *
- * This function intentionally does NOT accept a user ID
- * from the request body or query parameters.
- *
- * The authentication middleware must establish req.user
- * from a verified server-side session or token.
+ * The ID must come from verified server-side
+ * authentication, never from the request body.
  *
  * @param {Object} req - HTTP request object.
  * @returns {number|null} Authenticated user ID.
@@ -58,16 +63,37 @@ function getAuthenticatedUserId(req) {
 }
 
 /**
- * Handles a student's reservation check-in.
+ * Reads the configured check-in window.
  *
- * Uses a database transaction and row locking to protect
- * the reservation while validating and recording check-in.
+ * @returns {number|null} Valid number of minutes.
+ */
+function getCheckInMinutes() {
+  const rawValue = process.env.CHECK_IN_MINUTES;
+
+  if (
+    typeof rawValue !== "string" ||
+    !/^[1-9]\d*$/.test(rawValue)
+  ) {
+    return null;
+  }
+
+  const minutes = Number(rawValue);
+
+  return Number.isSafeInteger(minutes) ? minutes : null;
+}
+
+/**
+ * Processes a reservation check-in request.
  *
- * @param {Object} req - HTTP request.
- * @param {Object} res - HTTP response.
+ * Uses a MySQL transaction and row-level locking
+ * to protect the reservation during check-in.
+ *
+ * @param {Object} req - HTTP request object.
+ * @param {Object} res - HTTP response object.
  */
 module.exports = async function handler(req, res) {
-  // Only POST requests are allowed.
+
+  // STEP 1: Allow POST requests only.
   if (req.method !== "POST") {
     res.setHeader("Allow", "POST");
 
@@ -77,7 +103,7 @@ module.exports = async function handler(req, res) {
     });
   }
 
-  // Verify the authenticated user.
+  // STEP 2: Verify the authenticated student.
   const userId = getAuthenticatedUserId(req);
 
   if (!userId) {
@@ -87,7 +113,7 @@ module.exports = async function handler(req, res) {
     });
   }
 
-  // Validate the reservation ID submitted by the UI.
+  // STEP 3: Validate the submitted reservation ID.
   const reservationId = req.body?.reservation_id;
 
   if (
@@ -100,18 +126,36 @@ module.exports = async function handler(req, res) {
     });
   }
 
+  // STEP 4: Validate check-in configuration.
+  const checkInMinutes = getCheckInMinutes();
+
+  if (checkInMinutes === null) {
+    console.error("Invalid CHECK_IN_MINUTES configuration.");
+
+    return sendResponse(res, 500, {
+      success: false,
+      message: "Check-in is temporarily unavailable."
+    });
+  }
+
   let connection;
+  let transactionStarted = false;
 
   try {
-    // Obtain a connection from the MySQL connection pool.
+    // STEP 5: Obtain a database connection.
     connection = await pool.getConnection();
 
-    // Begin a transaction.
+    // Start a transaction.
     await connection.beginTransaction();
+    transactionStarted = true;
 
-    // Lock the reservation row during validation.
+    // STEP 6: Lock and retrieve the reservation.
     const [reservations] = await connection.query(
-      `SELECT reservation_id, user_id, status, start_time
+      `SELECT
+         reservation_id,
+         user_id,
+         status,
+         start_time
        FROM reservations
        WHERE reservation_id = ?
        FOR UPDATE`,
@@ -120,16 +164,17 @@ module.exports = async function handler(req, res) {
 
     const reservation = reservations[0];
 
-    // Check whether this reservation is eligible.
+    // STEP 7: Validate reservation eligibility.
     const validation = validateCheckIn(
       reservation,
       userId,
       new Date(),
-      Number(process.env.CHECK_IN_MINUTES)
+      checkInMinutes
     );
 
     if (!validation.valid) {
       await connection.rollback();
+      transactionStarted = false;
 
       return sendResponse(res, 400, {
         success: false,
@@ -137,7 +182,7 @@ module.exports = async function handler(req, res) {
       });
     }
 
-    // Check whether the reservation was already checked in.
+    // STEP 8: Check whether a check-in already exists.
     const [existingCheckIns] = await connection.query(
       `SELECT check_in_id
        FROM check_ins
@@ -147,6 +192,7 @@ module.exports = async function handler(req, res) {
 
     if (existingCheckIns.length > 0) {
       await connection.rollback();
+      transactionStarted = false;
 
       return sendResponse(res, 409, {
         success: false,
@@ -154,7 +200,8 @@ module.exports = async function handler(req, res) {
       });
     }
 
-    // Save the check-in using the database server's time.
+    // STEP 9: Insert the successful check-in.
+    // NOW() uses the database session's current time.
     const [result] = await connection.query(
       `INSERT INTO check_ins
          (reservation_id, checked_in_at)
@@ -162,9 +209,11 @@ module.exports = async function handler(req, res) {
       [reservationId]
     );
 
-    // Commit the successful check-in.
+    // STEP 10: Commit the transaction.
     await connection.commit();
+    transactionStarted = false;
 
+    // STEP 11: Return successful check-in response.
     return sendResponse(res, 201, {
       success: true,
       message: "Successfully checked in.",
@@ -173,79 +222,44 @@ module.exports = async function handler(req, res) {
     });
 
   } catch (error) {
-    // Undo unfinished changes if an error occurs.
-    if (connection) {
+
+    // Roll back any unfinished transaction.
+    if (connection && transactionStarted) {
       try {
         await connection.rollback();
       } catch (rollbackError) {
-        console.error("Check-in rollback failed.");
+        console.error(
+          "Check-in rollback failed:",
+          rollbackError.code
+        );
       }
     }
 
-    console.error("Check-in operation failed:", error.code);
+    // Handle duplicate check-ins from the unique constraint.
+    if (error.code === "ER_DUP_ENTRY") {
+      return sendResponse(res, 409, {
+        success: false,
+        message: "Reservation already checked in."
+      });
+    }
 
+    // Log technical errors on the server only.
+    console.error(
+      "Check-in operation failed:",
+      error.code || error.message
+    );
+
+    // Do not expose internal database details to users.
     return sendResponse(res, 500, {
       success: false,
       message: "Unable to complete check-in."
     });
 
   } finally {
-    // Return the database connection to the pool.
+
+    // Return the connection to the MySQL pool.
     if (connection) {
       connection.release();
     }
   }
 };
-
-/**
- * Initializes the Check-In interface.
- *
- * The reservation must come from a trusted backend response.
- * This function does not invent reservation IDs or user accounts.
- *
- * @param {Object} reservation - Reservation loaded from the API.
- */
-function initializeCheckIn(reservation) {
-  const button = document.getElementById("check-in-button");
-  const details = document.getElementById("reservation-details");
-  const message = document.getElementById("check-in-message");
-
-  if (!button || !details || !message) {
-    return;
-  }
-
-  // Do not enable check-in without a valid reservation.
-  if (
-    !reservation ||
-    !Number.isSafeInteger(reservation.reservation_id)
-  ) {
-    button.disabled = true;
-    details.textContent = "No reservation available for check-in.";
-    return;
-  }
-
-  // Display reservation information from the backend.
-  details.textContent =
-    `Reservation #${reservation.reservation_id}`;
-
-  button.disabled = reservation.status !== "confirmed";
-
-  // Handle the student's Check In action.
-  button.addEventListener("click", async () => {
-    button.disabled = true;
-    message.textContent = "Processing check-in...";
-
-    try {
-      const result = await checkInReservation(
-        reservation.reservation_id
-      );
-
-      message.textContent = result.message;
-      button.textContent = "Checked In";
-
-    } catch (error) {
-      message.textContent = error.message;
-      button.disabled = false;
-    }
-  });
-}
