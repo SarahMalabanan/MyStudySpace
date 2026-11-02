@@ -1,3 +1,96 @@
-<script src="/js/mock-data.js"></script>
-<script src="/js/api.js"></script>
-<script src="/js/rooms.js"></script>
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>My Reservations | MyStudySpace</title>
+
+  <!-- Shared MyStudySpace styling -->
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/rooms.css">
+</head>
+
+<body>
+
+  <!--
+    MyStudySpace - My Reservations
+    User Story: US-08 - Check In to a Reservation
+    Sprint: 1
+
+    Displays reservation information and allows
+    authenticated students to check in.
+
+    Reservation data must come from the backend.
+    No student IDs or reservations are hard-coded.
+  -->
+
+  <!-- Website navigation -->
+  <header class="topbar">
+    <span class="logo">MyStudySpace</span>
+
+    <nav>
+      <a href="index.html">Find a Room</a>
+      <a href="my-reservations.html" class="active">
+        My Reservations
+      </a>
+    </nav>
+  </header>
+
+  <!-- Main reservation interface -->
+  <main class="layout">
+
+    <section class="panel">
+      <h1>My Reservations</h1>
+
+      <p>
+        View your study room reservations
+        and check in when your reservation begins.
+      </p>
+
+      <!-- Reservation information from backend -->
+      <div id="reservation-details">
+        <p>Loading your reservation information...</p>
+      </div>
+
+      <!--
+        Disabled until an eligible reservation
+        has been loaded from the backend.
+      -->
+      <button
+        type="button"
+        class="btn"
+        id="check-in-button"
+        disabled
+      >
+        Check In
+      </button>
+
+      <!-- Check-in confirmation or error message -->
+      <p
+        id="check-in-message"
+        role="status"
+        aria-live="polite"
+      ></p>
+    </section>
+
+  </main>
+
+  <!-- Existing frontend Check-In controller -->
+  <script src="js/checkin.js"></script>
+
+  <script>
+    /*
+     * Reservation loading will be connected to
+     * the team's authenticated reservation API.
+     *
+     * Do not enable the Check In button until
+     * an actual reservation is retrieved.
+     */
+
+    initializeCheckIn(null);
+  </script>
+
+</body>
+</html>
