@@ -17,9 +17,9 @@ module.exports = async (req, res) => {
               whiteboard,
               has_window AS window,
               outlet,
+              has_tv AS tv,
               photo_url AS photo
        FROM rooms
-       WHERE status = 'active'
        ORDER BY library, floor, room_code`
     );
     res.status(200).json(rows);
