@@ -14,11 +14,8 @@
       <a href="index.html" class="active">Find a Room</a>
       <a href="my-reservations.html">My Reservations</a>
     </nav>
-    <!-- <span type="select" class="location">Nancy Thompson Learning Commons</span> -->
-    <select class="location" aria-label="Library location">
-      <option value="ntlc">Nancy Thompson Learning Commons</option>
-      <option value="other">Frank J. Guarini Library</option>
-    </select>
+    <select class="location" id="library" aria-label="Library location"></select>
+
     <div class="avatar" title="Account">NT</div>
   </header>
 
@@ -35,7 +32,8 @@
         <option value="3">Third Floor</option>
       </select>
       <label>Accessories</label>
-      <label class="check"><input type="checkbox" id="f-whiteboard"> Whiteboard</label>
+      <label class="check" id="row-whiteboard"><input type="checkbox" id="f-whiteboard"> Whiteboard</label>
+      <label class="check" id="row-tv"><input type="checkbox" id="f-tv"> TV</label>
       <label class="check"><input type="checkbox" id="f-window"> Window</label>
       <label class="check"><input type="checkbox" id="f-outlet"> Outlet</label>
       <button class="btn" id="search">Search rooms</button>
@@ -50,7 +48,7 @@
     <aside class="panel" id="detail"></aside>
   </main>
 
-  <script src="js/mock-data.js"></script>
+  <script src="js/floorplans.js"></script>
   <script src="js/utils.js"></script>
   <script src="js/api.js"></script>
   <script src="js/rooms.js"></script>

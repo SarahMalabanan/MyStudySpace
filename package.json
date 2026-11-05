@@ -23,6 +23,7 @@
   },
   "homepage": "https://github.com/SarahMalabanan/MyStudySpace#readme",
   "dependencies": {
-    "mysql2": "^3.24.6"
+    "mysql2": "^3.24.6",
+    "vercel": "^65.2.0"
   }
 }
