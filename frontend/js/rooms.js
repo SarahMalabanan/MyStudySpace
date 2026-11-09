@@ -1,479 +1,311 @@
-
-/**
- * MyStudySpace - Study Room Search and Availability
- *
- * Sprint 1 - View Available Study Rooms
- *
- * Description:
- * Displays study rooms, floor plans, availability,
- * search filters, and room details.
- *
- * Responsibilities:
- * 1. Initialize search filters.
- * 2. Retrieve rooms from the backend API.
- * 3. Display interactive floor plans.
- * 4. Filter rooms by availability and accessories.
- * 5. Allow students to select available rooms.
- * 6. Navigate to the reservation page.
- * 7. Handle API failures without breaking the interface.
- *
- * Important:
- * - Room data is retrieved through getRooms().
- * - Database credentials are never exposed to the browser.
- * - Room availability must ultimately be verified
- *   by the backend before a reservation is created.
- */
-
 const $ = (id) => document.getElementById(id);
-const SVG_NS = "http://www.w3.org/2000/svg";
-
-const pickMode = new URLSearchParams(
-  window.location.search
-).has("pick");
-
+const SVG_NS = 'http://www.w3.org/2000/svg';
+const pickMode = new URLSearchParams(location.search).has('pick');
 let rooms = [];
 let applied = {};
+const state = { library: null, floor: null, selected: null };
 
-const state = {
-  floor: 2,
-  selected: null
-};
+const floorsFor = (lib) =>
+  [...new Set(rooms.filter((r) => r.library === lib).map((r) => r.floor))].sort((a, b) => a - b);
+const DEFAULT_LIBRARY = 'Nancy Thompson Learning Commons';
+const norm = (s) => String(s).trim().toLowerCase().replace(/\s+/g, ' ');
 
-/**
- * Reads the current search filter values.
- *
- * @returns {Object} Selected search filters.
- */
+function floorName(floor) {
+  const names = {
+    2: 'Second Floor',
+    3: 'Third Floor',
+  };
+
+  return names[floor] || `Floor ${floor}`;
+}
+
+
+// Match the library name to a floor plan ignoring extra spaces and capital letters
+function planFor() {
+  const key = Object.keys(FLOORPLANS).find((k) => norm(k) === norm(state.library));
+  return key ? FLOORPLANS[key][state.floor] : undefined;
+}
+
 function readFilters() {
   return {
-    date: $("date").value,
-    hour: Number($("time").value),
-    floor: Number($("floor").value),
-    whiteboard: $("f-whiteboard").checked,
-    window: $("f-window").checked,
-    outlet: $("f-outlet").checked
+    date: $('date').value, hour: Number($('time').value), floor: Number($('floor').value),
+    whiteboard: $('f-whiteboard').checked, tv: $('f-tv').checked, window: $('f-window').checked, outlet: $('f-outlet').checked,
   };
 }
 
-/**
- * Checks whether a room satisfies the current filters.
- *
- * @param {Object} room - Room information.
- * @returns {boolean} Whether the room is available.
- */
-function isAvailable(room) {
-  const booked = isRangeBooked(
-    room.id,
-    applied.date,
-    applied.hour,
-    applied.hour + 1
-  );
-
-  return (
-    !booked &&
-    (!applied.whiteboard || room.whiteboard) &&
-    (!applied.window || room.window) &&
-    (!applied.outlet || room.outlet)
-  );
+function isAvailable(r) {
+  return !isRangeBooked(r.id, applied.date, applied.hour, applied.hour + 1)
+    && (!applied.whiteboard || r.whiteboard)
+    && (!applied.tv || r.tv)
+    && (!applied.window || r.window)
+    && (!applied.outlet || r.outlet);
 }
 
-/**
- * Renders the floor selection tabs.
- */
+function renderFloorSelect() {
+  $('floor').innerHTML = floorsFor(state.library)
+    .map((f) => `<option value="${f}">${floorName(f)}</option>`).join('');
+  $('floor').value = state.floor;
+}
+
 function renderTabs() {
-  const tabs = $("tabs");
-
-  tabs.innerHTML = Object.entries(FLOOR_NAMES)
-    .map(([number, name]) => `
-      <button
-        type="button"
-        data-floor="${number}"
-        class="${Number(number) === state.floor ? "active" : ""}"
-      >
-        ${name}
-      </button>
-    `)
-    .join("");
-
-  tabs.querySelectorAll("button").forEach((button) => {
-    button.addEventListener("click", () => {
-      state.floor = Number(button.dataset.floor);
-      $("floor").value = String(state.floor);
-      state.selected = null;
-      render();
-    });
-  });
+  $('tabs').innerHTML = floorsFor(state.library).map((n) =>
+    `<button data-floor="${n}" class="${n === state.floor ? 'active' : ''}">${floorName(n)}</button>`).join('');
+  $('tabs').querySelectorAll('button').forEach((b) => b.addEventListener('click', () => {
+    state.floor = Number(b.dataset.floor);
+    $('floor').value = state.floor;
+    state.selected = null;
+    render();
+  }));
 }
 
-/**
- * Selects an available room.
- *
- * @param {Object} room - Selected room.
- */
-function choose(room) {
-  state.selected = room.id;
-  render();
-}
-
-/**
- * Renders room locations on the floor plan.
- */
+function choose(r) { state.selected = r.id; render(); }
 function renderMap() {
-  const map = $("map");
-  map.innerHTML = "";
-
-  const plan = FLOORPLANS[state.floor];
+  const map = $('map');
+  map.innerHTML = '';
 
   const floorRooms = rooms.filter(
-    (room) => room.floor === state.floor
+    (r) => r.library === state.library && r.floor === state.floor
   );
 
-  const spotFor = (room) =>
-    plan && plan.spots[room.room_code];
-
-  if (plan) {
-    const wrapper = document.createElement("div");
-    wrapper.className = "plan";
-
-    const image = document.createElement("img");
-    image.src = plan.image;
-    image.alt = `${FLOOR_NAMES[state.floor]} floor plan`;
-
-    const svg = document.createElementNS(SVG_NS, "svg");
-
-    svg.setAttribute(
-      "viewBox",
-      `0 0 ${plan.width} ${plan.height}`
-    );
-
-    floorRooms.filter(spotFor).forEach((room) => {
-      const spot = spotFor(room);
-      const available = isAvailable(room);
-
-      const isCircle = spot.length === 3;
-
-      const shape = document.createElementNS(
-        SVG_NS,
-        isCircle ? "circle" : "rect"
-      );
-
-      if (isCircle) {
-        shape.setAttribute("cx", spot[0]);
-        shape.setAttribute("cy", spot[1]);
-        shape.setAttribute("r", spot[2]);
-      } else {
-        shape.setAttribute("x", spot[0]);
-        shape.setAttribute("y", spot[1]);
-        shape.setAttribute("width", spot[2]);
-        shape.setAttribute("height", spot[3]);
-      }
-
-      shape.setAttribute(
-        "class",
-        "spot " +
-        (
-          state.selected === room.id
-            ? "selected"
-            : available
-              ? "available"
-              : "unavailable"
-        )
-      );
-
-      shape.setAttribute("role", "button");
-
-      shape.setAttribute(
-        "aria-label",
-        `${room.name}, ${
-          available ? "available" : "unavailable"
-        }`
-      );
-
-      const tooltip = document.createElementNS(
-        SVG_NS,
-        "title"
-      );
-
-      tooltip.textContent =
-        `${room.name} · ${room.seats} seats` +
-        (available ? "" : " · unavailable");
-
-      shape.appendChild(tooltip);
-
-      if (available) {
-        shape.setAttribute("tabindex", "0");
-
-        shape.addEventListener("click", () => {
-          choose(room);
-        });
-
-        shape.addEventListener("keydown", (event) => {
-          if (
-            event.key === "Enter" ||
-            event.key === " "
-          ) {
-            event.preventDefault();
-            choose(room);
-          }
-        });
-      }
-
-      svg.appendChild(shape);
-    });
-
-    if (pickMode) {
-      enablePicker(svg, plan);
-    }
-
-    wrapper.append(image, svg);
-    map.appendChild(wrapper);
-  }
-
-  // Display rooms without mapped floor-plan coordinates.
-  const otherRooms = floorRooms.filter(
-    (room) => !spotFor(room)
-  );
-
-  if (otherRooms.length > 0) {
-    const container = document.createElement("div");
-    container.className = "others";
-
-    container.innerHTML =
-      '<h3>Other spaces on this floor</h3>' +
-      '<div class="list"></div>';
-
-    const list = container.querySelector(".list");
-
-    otherRooms.forEach((room) => {
-      const available = isAvailable(room);
-
-      const button = document.createElement("button");
-      button.type = "button";
-
-      button.className =
-        "tile" +
-        (available ? "" : " unavailable") +
-        (state.selected === room.id ? " selected" : "");
-
-      button.textContent = room.room_code;
-      button.disabled = !available;
-
-      button.setAttribute(
-        "aria-label",
-        `${room.name}, ${
-          available ? "available" : "unavailable"
-        }`
-      );
-
-      button.addEventListener("click", () => {
-        choose(room);
-      });
-
-      list.appendChild(button);
-    });
-
-    map.appendChild(container);
-  }
-}
-
-/**
- * Enables floor-plan coordinate selection.
- *
- * Development utility:
- * Add ?pick to the URL to select room coordinates.
- *
- * @param {SVGElement} svg - Floor plan overlay.
- * @param {Object} plan - Floor plan configuration.
- */
-function enablePicker(svg, plan) {
-  let first = null;
-  let output = $("pick-out");
-
-  if (!output) {
-    output = document.createElement("div");
-    output.id = "pick-out";
-    $("map").after(output);
-  }
-
-  output.textContent =
-    "Pick mode: click the top-left corner of a room, " +
-    "then the bottom-right.";
-
-  svg.style.cursor = "crosshair";
-
-  svg.addEventListener("click", (event) => {
-    const bounds = svg.getBoundingClientRect();
-
-    const x = Math.round(
-      ((event.clientX - bounds.left) / bounds.width) *
-      plan.width
-    );
-
-    const y = Math.round(
-      ((event.clientY - bounds.top) / bounds.height) *
-      plan.height
-    );
-
-    if (!first) {
-      first = { x, y };
-
-      output.textContent =
-        `First corner: ${x}, ${y}. ` +
-        "Now click the opposite corner.";
-
+  // FRANK J. GUARINI LIBRARY: Show rooms as a grid
+  if (norm(state.library) !== norm(DEFAULT_LIBRARY)) {
+    if (!floorRooms.length) {
+      map.textContent = 'No rooms on this floor.';
       return;
     }
 
-    output.textContent = JSON.stringify([
-      Math.min(first.x, x),
-      Math.min(first.y, y),
-      Math.abs(x - first.x),
-      Math.abs(y - first.y)
-    ]);
+    const box = document.createElement('div');
+    box.className = 'others solo';
 
-    first = null;
-  });
-}
+    const grid = document.createElement('div');
+    grid.className = 'list';
 
-/**
- * Builds a room accessory list item.
- *
- * @param {string} label - Accessory name.
- * @param {boolean} available - Accessory availability.
- * @returns {string} HTML list item.
- */
-function feature(label, available) {
-  return `<li class="${available ? "" : "no"}">${label}</li>`;
-}
+    floorRooms.forEach((r) => {
+      const ok = isAvailable(r);
 
-/**
- * Displays details for the selected room.
- */
-function renderDetail() {
-  const details = $("detail");
+      const b = document.createElement('button');
+      b.className = 'tile' +
+        (ok ? '' : ' unavailable') +
+        (state.selected === r.id ? ' selected' : '');
 
-  const room = rooms.find(
-    (item) => item.id === state.selected
-  );
+      b.innerHTML = `
+        <span>${r.room_code}</span>
+        <small>${r.seats} seats</small>
+      `;
 
-  if (!room) {
-    details.innerHTML =
-      '<h2>Room details</h2>' +
-      '<p class="empty">' +
-      'Click an available room on the map ' +
-      'to see its details.' +
-      '</p>';
+      b.disabled = !ok;
+      b.setAttribute(
+        'aria-label',
+        `${r.name}, ${ok ? 'available' : 'unavailable'}`
+      );
 
+      b.addEventListener('click', () => choose(r));
+
+      grid.appendChild(b);
+    });
+
+    box.appendChild(grid);
+    map.appendChild(box);
     return;
   }
 
-  details.innerHTML = `
-    <h2>${room.name}</h2>
-    ${roomPhotoHtml(room)}
-    <div>Seats ${room.seats}</div>
+  // NANCY THOMPSON: Keep the original floor-plan map
+  const plan = planFor();
 
-    <ul class="features">
-      ${feature("Whiteboard", room.whiteboard)}
-      ${feature("Window", room.window)}
-      ${feature("Outlet", room.outlet)}
-    </ul>
+  if (!plan) {
+    map.textContent = 'No floor plan available.';
+    return;
+  }
 
-    <div>
-      ${applied.date} · ${fmtHour(applied.hour)}
-    </div>
+  const wrap = document.createElement('div');
+  wrap.className = 'plan';
 
-    <div class="status">Available</div>
+  const img = document.createElement('img');
+  img.src = plan.image;
+  img.alt = `${state.library}, ${floorName(state.floor)} floor plan`;
 
-    <button
-      type="button"
-      class="btn"
-      id="select-room"
-    >
-      Select room
-    </button>
-  `;
+  const svg = document.createElementNS(SVG_NS, 'svg');
+  svg.setAttribute('viewBox', `0 0 ${plan.width} ${plan.height}`);
 
-  $("select-room").addEventListener("click", () => {
-    const query = new URLSearchParams({
-      room: String(room.id),
-      date: applied.date,
-      start: String(applied.hour)
-    });
+  floorRooms.forEach((r) => {
+    const s = plan.spots[r.room_code];
 
-    window.location.href =
-      `reserve.html?${query.toString()}`;
+    // Skip rooms without a mapped location
+    if (!s) return;
+
+    const ok = isAvailable(r);
+    const isCircle = s.length === 3;
+
+    const rect = document.createElementNS(
+      SVG_NS,
+      isCircle ? 'circle' : 'rect'
+    );
+
+    if (isCircle) {
+      rect.setAttribute('cx', s[0]);
+      rect.setAttribute('cy', s[1]);
+      rect.setAttribute('r', s[2]);
+    } else {
+      rect.setAttribute('x', s[0]);
+      rect.setAttribute('y', s[1]);
+      rect.setAttribute('width', s[2]);
+      rect.setAttribute('height', s[3]);
+    }
+
+    rect.setAttribute(
+      'class',
+      'spot ' +
+      (state.selected === r.id
+        ? 'selected'
+        : ok ? 'available' : 'unavailable')
+    );
+
+    rect.setAttribute('role', 'button');
+    rect.setAttribute('aria-label',
+      `${r.name}, ${ok ? 'available' : 'unavailable'}`
+    );
+
+    const tip = document.createElementNS(SVG_NS, 'title');
+    tip.textContent = `${r.name} · ${r.seats} seats${ok ? '' : ' · unavailable'}`;
+    rect.appendChild(tip);
+
+    if (ok) {
+      rect.setAttribute('tabindex', '0');
+      rect.addEventListener('click', () => choose(r));
+
+      rect.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          choose(r);
+        }
+      });
+    }
+
+    svg.appendChild(rect);
+  });
+
+  if (pickMode) enablePicker(svg, plan);
+
+  wrap.append(img, svg);
+  map.appendChild(wrap);
+}
+
+// Add ?pick to the URL, then click two opposite corners of a room to get its [x, y, w, h]
+function enablePicker(svg, plan) {
+  let first = null;
+  let out = $('pick-out');
+  if (!out) { out = document.createElement('div'); out.id = 'pick-out'; $('map').after(out); }
+  out.textContent = 'Pick mode: click the top-left corner of a room, then the bottom-right.';
+  svg.style.cursor = 'crosshair';
+  svg.addEventListener('click', (e) => {
+    const b = svg.getBoundingClientRect();
+    const x = Math.round(((e.clientX - b.left) / b.width) * plan.width);
+    const y = Math.round(((e.clientY - b.top) / b.height) * plan.height);
+    if (!first) { first = { x, y }; out.textContent = `First corner: ${x}, ${y}. Now click the opposite corner.`; }
+    else {
+      out.textContent = `[${Math.min(first.x, x)}, ${Math.min(first.y, y)}, ${Math.abs(x - first.x)}, ${Math.abs(y - first.y)}]`;
+      first = null;
+    }
   });
 }
 
-/**
- * Refreshes the room search interface.
- */
-function render() {
-  renderTabs();
-  renderMap();
-  renderDetail();
+function feature(label, has) { return `<li class="${has ? '' : 'no'}">${label}</li>`; }
+
+function libraryFeatures(libraryRooms) {
+  const features = [];
+
+  if (libraryRooms.some(r => r.whiteboard)) {
+    features.push(['whiteboard', 'Whiteboard']);
+  }
+
+  if (libraryRooms.some(r => r.tv)) {
+    features.push(['tv', 'TV']);
+  }
+
+  if (libraryRooms.some(r => r.window)) {
+    features.push(['window', 'Window']);
+  }
+
+  if (libraryRooms.some(r => r.outlet)) {
+    features.push(['outlet', 'Outlet']);
+  }
+
+  return features;
 }
 
-/**
- * Initializes the room search page.
- *
- * IMPORTANT FIX:
- * Search filters are initialized BEFORE loading rooms.
- *
- * This prevents a failed API request from leaving
- * the Time dropdown empty.
- */
-async function init() {
-  // STEP 1: Initialize the search filters.
-  $("date").value = today();
+function renderDetail() {
+  const r = rooms.find((x) => x.id === state.selected);
+  if (!r) {
+    $('detail').innerHTML = '<h2>Room details</h2><p class="empty">Click an available room on the map to see its details.</p>';
+    return;
+  }
+  $('detail').innerHTML = `
+    <h2>${r.name}</h2>
+    ${roomPhotoHtml(r)}
+    <div>Seats ${r.seats}</div>
+    ${featureListHtml(r, libraryFeatures(rooms.filter((x) => x.library === r.library)))}
+    <div>${applied.date} · ${fmtHour(applied.hour)}</div>
+    <div class="status">Available</div>
+    <button class="btn" id="select-room">Select room</button>`;
+ $('select-room').addEventListener('click', () => {
+  const params = new URLSearchParams({
+    room: r.id,
+    date: applied.date,
+    start: applied.hour
+  });
 
-  $("time").innerHTML = hourOptions(8, 20, true);
-  $("time").value = "13";
+  location.href = `/reserve?${params.toString()}`;
+});
+}
 
+function render() { renderTabs(); renderMap(); renderDetail(); }
+
+// Show only the accessory filters this library has (e.g. TV instead of Whiteboard)
+function renderFilters() {
+  const keys = libraryFeatures(rooms.filter((r) => r.library === state.library)).map(([k]) => k);
+  ['whiteboard', 'tv'].forEach((k) => {
+    const show = keys.includes(k);
+    $('row-' + k).hidden = !show;
+    if (!show) $('f-' + k).checked = false;
+  });
+}
+
+// Switch libraries: rebuild the floor list, keep date/time/accessory filters
+function setLibrary(lib) {
+  state.library = lib;
+  state.floor = floorsFor(lib)[0];
+  state.selected = null;
+  renderFloorSelect();
+  renderFilters();
   applied = readFilters();
-  state.floor = applied.floor;
+  render();
+}
 
-  // STEP 2: Register the Search Rooms button.
-  $("search").addEventListener("click", () => {
+async function init() {
+  try { rooms = await getRooms(); }
+  catch { $('map').textContent = 'Could not load rooms. Is the server running?'; return; }
+
+  const libraries = [...new Set(rooms.map((r) => r.library))]
+    .sort((a, b) => (norm(b) === norm(DEFAULT_LIBRARY)) - (norm(a) === norm(DEFAULT_LIBRARY)));
+  if (!libraries.length) { $('map').textContent = 'No rooms found.'; return; }
+  $('library').innerHTML = libraries.map((l) => `<option value="${l}">${l}</option>`).join('');
+  $('library').addEventListener('change', () => setLibrary($('library').value));
+
+  $('date').value = today();
+  $('time').innerHTML = hourOptions(8, 20, true);
+  $('time').value = 13;
+  $('search').addEventListener('click', () => {
     applied = readFilters();
     state.floor = applied.floor;
     state.selected = null;
     render();
   });
 
-  // STEP 3: Load rooms from the existing API helper.
-  try {
-    rooms = await getRooms();
-
-    if (!Array.isArray(rooms)) {
-      throw new Error("Invalid room data received.");
-    }
-
-  } catch (error) {
-    console.error(
-      "MyStudySpace: Failed to load rooms:",
-      error
-    );
-
-    $("map").textContent =
-      "Could not load rooms. Is the server running?";
-
-    $("detail").innerHTML =
-      '<h2>Room details</h2>' +
-      '<p class="empty">' +
-      'Room information is temporarily unavailable.' +
-      '</p>';
-
-    return;
-  }
-
-  // STEP 4: Render rooms after successful loading.
-  render();
+  const first = libraries.find((l) => norm(l) === norm(DEFAULT_LIBRARY)) || libraries[0];
+  $('library').value = first;
+  setLibrary(first);
 }
-
-// Initialize the page when the HTML is ready.
-if (document.readyState === "loading") {
-  document.addEventListener("DOMContentLoaded", init);
-} else {
-  init();
-}
+init().catch((e) => {
+  console.error(e);
+  $('map').textContent = `Something went wrong loading the page: ${e.message}`;
+});
