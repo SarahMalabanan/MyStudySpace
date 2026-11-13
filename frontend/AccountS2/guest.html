@@ -6,11 +6,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Guest Access | MyStudySpace</title>
 
-  <!-- Reuse the existing website's colors and styling -->
-  <link rel="stylesheet" href="../../css/base.css">
+  <!-- Use the same colors and styling as the homepage -->
+  <link rel="stylesheet" href="../css/base.css">
 
   <style>
-    /* Center the guest access form */
+    /* Center the guest form on the page */
     .guest-panel {
       max-width: 520px;
       margin: 50px auto;
@@ -21,7 +21,7 @@
       margin: 0;
     }
 
-    /* Style guest contact fields */
+    /* Style the guest information fields */
     .guest-panel input {
       width: 100%;
       padding: 12px;
@@ -43,32 +43,37 @@
       padding-top: 20px;
     }
 
+    /* Keep the registration button consistent with the website */
     .account-option .btn {
       display: block;
       text-decoration: none;
+    }
+
+    .account-option p a {
+      color: var(--primary);
     }
   </style>
 </head>
 
 <body>
 
-  <!-- Shared website navigation -->
+  <!-- Main website navigation -->
   <header class="topbar">
     <span class="logo">MyStudySpace</span>
 
     <nav>
-      <a href="../../index.html">Find a Room</a>
-      <a href="../../my-reservations.html">My Reservations</a>
+      <a href="../index.html">Find a Room</a>
+      <a href="../my-reservations.html">My Reservations</a>
     </nav>
   </header>
 
-  <!-- Sprint 2: Guest Access -->
+  <!-- Guest access form -->
   <main class="panel guest-panel">
 
     <h1>Welcome to MyStudySpace</h1>
     <p>Reserve study rooms without creating an account.</p>
 
-    <!-- Guest information form -->
+    <!-- Collect the guest's contact information -->
     <form id="guest-form">
 
       <label for="first-name">First Name</label>
@@ -96,7 +101,7 @@
       </button>
     </form>
 
-    <!-- Optional account creation -->
+    <!-- Account registration is optional -->
     <div class="account-option">
 
       <strong>
@@ -107,53 +112,54 @@
         Create an account for a more personalized experience.
       </p>
 
-      <!-- Registration page will be created next -->
-      <a href="../User/register.html" class="btn secondary">
+      <!-- Opens the account registration page -->
+      <a href="User/register.html" class="btn secondary">
         Create an Account
       </a>
 
       <!-- Existing users can log in -->
       <p>
         Already have an account?
-        <a href="../User/login.html">Log In</a>
+        <a href="User/login.html">Log In</a>
       </p>
+
     </div>
   </main>
 
   <script>
     /*
-     * Sprint 2: Guest Access
-     * Validates contact information and temporarily
-     * stores it for the current browser tab.
+     * Guest Access - Sprint 2
+     * Checks the guest's information and saves it
+     * temporarily while they use the website.
      *
-     * This is not a verified login session.
+     * This does not create a verified login session.
      */
 
     document.getElementById('guest-form')
       .addEventListener('submit', function (event) {
 
-        // Prevent the page from reloading
+        // Stop the form from refreshing the page
         event.preventDefault();
 
-        // Retrieve entered guest information
+        // Get the guest's name and phone number
         const firstName = document
           .getElementById('first-name').value.trim();
 
         const phone = document
           .getElementById('phone').value.trim();
 
-        // Check that the name and phone number are valid
+        // Check that both fields contain valid information
         if (!firstName || !/^\+?[\d\s().-]{10,20}$/.test(phone)) {
           alert('Please enter a valid name and phone number.');
           return;
         }
 
-        // Temporarily store guest information
+        // Save guest information for the current browser tab
         sessionStorage.setItem('guestName', firstName);
         sessionStorage.setItem('guestPhone', phone);
 
-        // Return to the main room reservation homepage
-        window.location.href = '../../index.html';
+        // Send the guest back to the homepage
+        window.location.href = '../index.html';
       });
   </script>
 

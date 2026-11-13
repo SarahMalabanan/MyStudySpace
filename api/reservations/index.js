@@ -1,0 +1,101 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Find a Room | MyStudySpace</title>
+
+  <!-- Styling for the website and study room maps -->
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/rooms.css">
+</head>
+
+<body>
+  <!-- Main navigation bar -->
+  <header class="topbar">
+    <span class="logo">MyStudySpace</span>
+
+    <nav>
+      <a href="index.html" class="active">Find a Room</a>
+      <a href="my-reservations.html">My Reservations</a>
+    </nav>
+
+    <!-- Allows users to switch between library locations -->
+    <select class="location" id="library" aria-label="Library location"></select>
+
+    <!-- Opens the guest access page -->
+    <a href="AccountS2/guest.html" class="btn"
+       style="width:auto; margin:0; padding:8px 18px; text-decoration:none;">
+      Guest Access
+    </a>
+
+    <!-- Existing account icon -->
+    <div class="avatar" title="Account">NT</div>
+  </header>
+
+  <!-- Main study room search layout -->
+  <main class="layout three">
+
+    <!-- Users can filter rooms based on their preferences -->
+    <aside class="panel">
+      <h2>Search filters</h2>
+
+      <label for="date">Date</label>
+      <input type="date" id="date">
+
+      <label for="time">Time</label>
+      <select id="time"></select>
+
+      <label for="floor">Floor</label>
+      <select id="floor">
+        <option value="2">Second Floor</option>
+        <option value="3">Third Floor</option>
+      </select>
+
+      <!-- Available room accessories -->
+      <label>Accessories</label>
+
+      <label class="check" id="row-whiteboard">
+        <input type="checkbox" id="f-whiteboard"> Whiteboard
+      </label>
+
+      <label class="check" id="row-tv">
+        <input type="checkbox" id="f-tv"> TV
+      </label>
+
+      <label class="check">
+        <input type="checkbox" id="f-window"> Window
+      </label>
+
+      <label class="check">
+        <input type="checkbox" id="f-outlet"> Outlet
+      </label>
+
+      <button class="btn" id="search">Search rooms</button>
+    </aside>
+
+    <!-- Displays the floor maps and available study rooms -->
+    <section class="panel">
+      <div class="tabs" id="tabs"></div>
+      <div class="map" id="map"></div>
+
+      <!-- Shows what each room availability color means -->
+      <div class="legend">
+        <span>Available</span>
+        <span class="u">Unavailable</span>
+        <span class="s">Selected</span>
+      </div>
+    </section>
+
+    <!-- Shows more information when a room is selected -->
+    <aside class="panel" id="detail"></aside>
+  </main>
+
+  <!-- Existing JavaScript files for the room search system -->
+  <script src="js/floorplans.js"></script>
+  <script src="js/utils.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/rooms.js"></script>
+</body>
+</html>
