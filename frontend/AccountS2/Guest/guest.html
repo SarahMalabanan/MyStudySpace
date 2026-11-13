@@ -1,0 +1,161 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Guest Access | MyStudySpace</title>
+
+  <!-- Reuse the existing website's colors and styling -->
+  <link rel="stylesheet" href="../../css/base.css">
+
+  <style>
+    /* Center the guest access form */
+    .guest-panel {
+      max-width: 520px;
+      margin: 50px auto;
+      padding: 30px;
+    }
+
+    .guest-panel h1 {
+      margin: 0;
+    }
+
+    /* Style guest contact fields */
+    .guest-panel input {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      font: inherit;
+    }
+
+    .guest-panel label {
+      font-weight: 600;
+      color: var(--ink);
+    }
+
+    /* Separate guest access from account registration */
+    .account-option {
+      text-align: center;
+      border-top: 1px solid var(--line);
+      margin-top: 28px;
+      padding-top: 20px;
+    }
+
+    .account-option .btn {
+      display: block;
+      text-decoration: none;
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- Shared website navigation -->
+  <header class="topbar">
+    <span class="logo">MyStudySpace</span>
+
+    <nav>
+      <a href="../../index.html">Find a Room</a>
+      <a href="../../my-reservations.html">My Reservations</a>
+    </nav>
+  </header>
+
+  <!-- Sprint 2: Guest Access -->
+  <main class="panel guest-panel">
+
+    <h1>Welcome to MyStudySpace</h1>
+    <p>Reserve study rooms without creating an account.</p>
+
+    <!-- Guest information form -->
+    <form id="guest-form">
+
+      <label for="first-name">First Name</label>
+      <input
+        type="text"
+        id="first-name"
+        name="firstName"
+        placeholder="Enter your first name"
+        autocomplete="given-name"
+        required
+      >
+
+      <label for="phone">Phone Number</label>
+      <input
+        type="tel"
+        id="phone"
+        name="phone"
+        placeholder="(201) 555-0123"
+        autocomplete="tel"
+        required
+      >
+
+      <button class="btn" type="submit">
+        Continue as Guest
+      </button>
+    </form>
+
+    <!-- Optional account creation -->
+    <div class="account-option">
+
+      <strong>
+        Want to save your preferences and reservation history?
+      </strong>
+
+      <p>
+        Create an account for a more personalized experience.
+      </p>
+
+      <!-- Registration page will be created next -->
+      <a href="../User/register.html" class="btn secondary">
+        Create an Account
+      </a>
+
+      <!-- Existing users can log in -->
+      <p>
+        Already have an account?
+        <a href="../User/login.html">Log In</a>
+      </p>
+    </div>
+  </main>
+
+  <script>
+    /*
+     * Sprint 2: Guest Access
+     * Validates contact information and temporarily
+     * stores it for the current browser tab.
+     *
+     * This is not a verified login session.
+     */
+
+    document.getElementById('guest-form')
+      .addEventListener('submit', function (event) {
+
+        // Prevent the page from reloading
+        event.preventDefault();
+
+        // Retrieve entered guest information
+        const firstName = document
+          .getElementById('first-name').value.trim();
+
+        const phone = document
+          .getElementById('phone').value.trim();
+
+        // Check that the name and phone number are valid
+        if (!firstName || !/^\+?[\d\s().-]{10,20}$/.test(phone)) {
+          alert('Please enter a valid name and phone number.');
+          return;
+        }
+
+        // Temporarily store guest information
+        sessionStorage.setItem('guestName', firstName);
+        sessionStorage.setItem('guestPhone', phone);
+
+        // Return to the main room reservation homepage
+        window.location.href = '../../index.html';
+      });
+  </script>
+
+</body>
+</html>
