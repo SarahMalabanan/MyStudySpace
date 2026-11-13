@@ -1,37 +1,176 @@
-.tabs { display: flex; gap: .5rem; margin-bottom: .75rem; }
-.tabs button { padding: .4rem 1rem; border: 1px solid var(--line); background: #fff; border-radius: 6px; font: inherit; cursor: pointer; }
-.tabs button.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+.tabs { 
+    display: flex; 
+    gap: .5rem; 
+    margin-bottom: .75rem; 
+}
+
+.tabs button { 
+    padding: .4rem 1rem; 
+    border: 1px solid var(--line); 
+    background: #fff; 
+    border-radius: 6px; font: inherit; cursor: pointer; }
+.tabs button.active { 
+    background: var(--primary); 
+    color: #fff; 
+    border-color: var(--primary); 
+}
 
 /* Floor plan image with clickable shapes on top */
-.plan { position: relative; line-height: 0; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
-.plan img { width: 100%; height: auto; display: block; }
-.plan svg { position: absolute; inset: 0; width: 100%; height: 100%; }
-.spot { stroke-width: 3; transition: fill .15s; }
-.spot.available { fill: rgba(47, 160, 100, .38); stroke: #2f8f5b; cursor: pointer; }
-.spot.available:hover { fill: rgba(47, 160, 100, .65); }
-.spot.unavailable { fill: rgba(110, 110, 110, .5); stroke: #777; stroke-dasharray: 10 6; cursor: not-allowed; }
-.spot.selected { fill: rgba(240, 180, 41, .75); stroke: #b5830f; }
-.spot:focus-visible { outline: 3px solid var(--sel); }
+.plan { 
+    position: relative; 
+    line-height: 0; 
+    border: 1px solid var(--line); 
+    border-radius: 8px; 
+    overflow: hidden; 
+}
+
+.plan img {
+    width: 100%; 
+    height: auto; 
+    display: block; 
+}
+.plan svg { 
+    position: absolute; 
+    inset: 0; 
+    width: 100%; 
+    height: 100%; 
+}
+.spot { 
+    stroke-width: 3; 
+    transition: fill .15s; 
+}
+.spot.available { 
+    fill: rgba(47, 160, 100, .38); 
+    stroke: #2f8f5b; 
+    cursor: pointer; 
+}
+.spot.available:hover { 
+    fill: rgba(47, 160, 100, .65); 
+}
+.spot.unavailable { 
+    fill: rgba(110, 110, 110, .5); 
+    stroke: #777; 
+    stroke-dasharray: 10 6; 
+    cursor: not-allowed; 
+}
+.spot.selected { 
+    fill: rgba(240, 180, 41, .75); 
+    stroke: #b5830f; 
+}
+.spot:focus-visible { 
+    outline: 3px solid var(--sel); 
+}
 
 /* Rooms that are not drawn on the plan */
-.others { margin-top: 1rem; }
-.others h3 { margin: 0 0 .5rem; font-size: .95rem; color: var(--muted); font-weight: 600; }
-.others .list { display: flex; flex-wrap: wrap; gap: 8px; }
-.tile { min-width: 78px; height: 52px; padding: 0 .6rem; border: 2px solid var(--ok-line); background: var(--ok); border-radius: 8px; font: inherit; font-weight: 600; cursor: pointer; }
-.tile:hover:not(:disabled) { filter: brightness(.95); }
-.tile.unavailable { background: #fff; border: 2px dashed var(--line); color: var(--muted); cursor: not-allowed; }
-.tile.selected { background: var(--sel); border-color: #b5830f; }
+.others { 
+    margin-top: 1rem; 
+}
+.others h3 {
+    margin: 0 0 .5rem; 
+    font-size: .95rem; 
+    color: var(--muted); 
+    font-weight: 600; 
+}
 
-.legend { display: flex; gap: 1rem; margin-top: .75rem; font-size: .85rem; color: var(--muted); }
-.legend span::before { content: ""; display: inline-block; width: 14px; height: 14px; margin-right: .4rem; vertical-align: -2px; border: 2px solid var(--ok-line); background: var(--ok); border-radius: 3px; }
-.legend .u::before { background: #fff; border: 2px dashed var(--line); }
-.legend .s::before { background: var(--sel); border-color: #b5830f; }
-.empty { color: var(--muted); }
-.status { color: #2f7d5b; font-weight: 600; margin-top: .5rem; }
-#pick-out { margin-top: .5rem; padding: .5rem; background: #fffbe6; border: 1px solid #e6d98a; border-radius: 6px; font: .85rem/1.4 monospace; }
+.others .list { 
+    display: flex; 
+    flex-wrap: wrap; 
+    gap: 8px; 
+}
+
+.tile { 
+    min-width: 78px; 
+    height: 52px; 
+    padding: 0 .6rem; 
+    border: 2px solid var(--ok-line); 
+    background: var(--ok); 
+    border-radius: 8px; 
+    font: inherit; 
+    font-weight: 600; 
+    cursor: pointer; 
+}
+.tile:hover:not(:disabled) { 
+    filter: brightness(.95); 
+}
+
+.tile.unavailable { 
+    background: #fff; 
+    border: 2px dashed var(--line); 
+    color: var(--muted); 
+    cursor: not-allowed; 
+}
+
+.tile.selected { 
+    background: var(--sel); 
+    border-color: #b5830f; 
+}
+
+.legend { 
+    display: flex; 
+    gap: 1rem; 
+    margin-top: .75rem; 
+    font-size: .85rem; 
+    color: var(--muted);
+}
+
+.legend span::before { 
+    content: ""; 
+    display: inline-block; 
+    width: 14px; 
+    height: 14px; 
+    margin-right: .4rem; 
+    vertical-align: -2px; 
+    border: 2px solid var(--ok-line); 
+    background: var(--ok); 
+    border-radius: 3px; 
+}
+
+.legend .u::before { 
+    background: #fff; 
+    border: 2px dashed var(--line); 
+}
+.legend .s::before { 
+    background: var(--sel); 
+    border-color: #b5830f; 
+}
+.empty { 
+    color: var(--muted); 
+}
+.status { 
+    color: #2f7d5b; 
+    font-weight: 600; 
+    margin-top: .5rem; 
+}
+#pick-out { 
+    margin-top: .5rem; 
+    padding: .5rem; 
+    background: #fffbe6; 
+    border: 1px solid #e6d98a; 
+    border-radius: 6px; 
+    font: .85rem/1.4 monospace; 
+}
 
 /* Libraries with no floor plan: just a grid of square boxes */
-.others.solo .list { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 12px; }
-.others.solo .tile { height: auto; aspect-ratio: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .25rem; font-size: 1.1rem; }
-.tile small { font-weight: 500; font-size: .8rem; color: var(--muted); }
-.tile.selected small { color: var(--ink); }
+.others.solo .list { 
+    display: grid; 
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); 
+    gap: 12px; 
+}
+.others.solo .tile { 
+    height: auto; 
+    aspect-ratio: 1; 
+    display: flex; 
+    flex-direction: column; 
+    align-items: center; 
+    justify-content: center; 
+    gap: .25rem; 
+    font-size: 1.1rem; 
+}
+.tile small { 
+    font-weight: 500; 
+    font-size: .8rem; 
+    color: var(--muted); 
+}
+.tile.selected small { 
+    color: var(--ink); 
+}

@@ -11,27 +11,59 @@ async function getRoom(id) {
   return rooms.find((r) => r.id === Number(id));
 }
 
-// ---- Reservations: still saved in this browser until the reservations API exists ----
-const STORE_KEY = 'mystudyspace_reservations';
 
-function loadReservations() {
-  try { return JSON.parse(localStorage.getItem(STORE_KEY)) || []; }
-  catch { return []; }
-}
+async function getUnavailableRooms(date, start, end) {
+  const params = new URLSearchParams({
+    date: date,
+    start: start,
+    end: end
+  });
 
-function isRangeBooked(roomId, date, start, end) {
-  return loadReservations().some(
-    (r) => r.roomId === roomId && r.date === date && start < r.end && end > r.start
+  const res = await fetch(
+    `/api/reservations/create?${params.toString()}`
   );
+
+  const data = await res.json();
+
+  if (!res.ok) {
+    throw new Error(data.message || 'Could not check room availability.');
+  }
+
+  return data.room_ids;
 }
 
-async function createReservation(roomId, date, start, end) {
-  if (isRangeBooked(roomId, date, start, end)) throw new Error('Already booked');
-  const list = loadReservations();
-  list.push({ id: Date.now(), roomId, date, start, end });
-  localStorage.setItem(STORE_KEY, JSON.stringify(list));
+
+async function createReservation(
+  roomId,
+  date,
+  start,
+  end,
+  guestName,
+  guestEmail,
+  guestPhone
+) {
+  const res = await fetch('/api/reservations/create', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      room_id: roomId,
+      date: date,
+      start: start,
+      end: end,
+      guest_name: guestName,
+      guest_email: guestEmail,
+      guest_phone: guestPhone
+    })
+  });
+
+  const data = await res.json();
+
+  if (!res.ok) {
+    throw new Error(data.message || 'Could not create reservation.');
+  }
+
+  return data;
 }
 
-function clearReservations() { 
-  localStorage.removeItem(STORE_KEY); 
-}

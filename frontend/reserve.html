@@ -20,18 +20,49 @@
   <main class="layout three">
     <aside class="panel" id="room-info"></aside>
 
-    <section class="panel">
+        <section class="panel">
       <h2>Select date &amp; time</h2>
       <div class="times">
-        <div><label for="date">Date</label><input type="date" id="date"></div>
-        <div><label for="start">Start time</label><select id="start"></select></div>
-        <div><label for="end">End time</label><select id="end"></select></div>
+        <div>
+          <label for="date">Date</label>
+          <input type="date" id="date">
+        </div>
+        <div>
+          <label for="start">Start time</label>
+          <select id="start"></select>
+        </div>
+        <div>
+          <label for="end">End time</label>
+          <select id="end"></select>
+        </div>
       </div>
+
+      <h2>Your information</h2>
+      <p>Enter your name and at least one way to contact you.</p>
+
+      <div class="guest-fields">
+        <div>
+          <label for="guest-name">Full name</label>
+          <input type="text" id="guest-name" placeholder="Enter your full name" required>
+        </div>
+
+        <div>
+          <label for="guest-email">Email address</label>
+          <input type="email" id="guest-email" placeholder="Enter your email">
+        </div>
+
+        <div>
+          <label for="guest-phone">Phone number</label>
+          <input type="tel" id="guest-phone" placeholder="Enter your phone number">
+        </div>
+      </div>
+
       <ol class="rules">
         <h3>Reservation &amp; library rules</h3>
         <li>Reservations last up to 2 hours.</li>
         <li>Check in within 15 minutes of your start time, or the room is released.</li>
         <li>Keep noise low and leave the room clean.</li>
+        <li>When finished, keep lights on.</li>
         <li>Cancel ahead of time if your plans change.</li>
       </ol>
     </section>
@@ -49,6 +80,32 @@
       <button class="btn secondary" id="cancel">Cancel</button>
     </aside>
   </main>
+
+
+<!-- Reservation Confirmation Popup -->
+<div id="confirmation-modal" class="confirmation-modal" hidden>
+  <div class="confirmation-box">
+    <div class="confirmation-icon">✓</div>
+
+    <h2>Reservation Confirmed!</h2>
+    <p>Your study room has been successfully reserved.</p>
+
+    <div class="confirmation-details">
+      <p><strong>Confirmation Code:</strong> <span id="c-code"></span></p>
+      <p><strong>Name:</strong> <span id="c-name"></span></p>
+      <p><strong>Room:</strong> <span id="c-room"></span></p>
+      <p><strong>Date:</strong> <span id="c-date"></span></p>
+      <p><strong>Time:</strong> <span id="c-time"></span></p>
+      <p><strong>Email:</strong> <span id="c-email"></span></p>
+      <p><strong>Phone:</strong> <span id="c-phone"></span></p>
+    </div>
+
+    <button type="button" class="btn" id="close-confirmation">
+      Done
+    </button>
+  </div>
+</div>
+
 
   <script src="js/mock-data.js"></script>
   <script src="js/utils.js"></script>

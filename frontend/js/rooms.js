@@ -3,6 +3,7 @@ const SVG_NS = 'http://www.w3.org/2000/svg';
 const pickMode = new URLSearchParams(location.search).has('pick');
 let rooms = [];
 let applied = {};
+let unavailableRoomIds = new Set();
 const state = { library: null, floor: null, selected: null };
 
 const floorsFor = (lib) =>
@@ -34,11 +35,29 @@ function readFilters() {
 }
 
 function isAvailable(r) {
-  return !isRangeBooked(r.id, applied.date, applied.hour, applied.hour + 1)
+  return !unavailableRoomIds.has(Number(r.id))
     && (!applied.whiteboard || r.whiteboard)
     && (!applied.tv || r.tv)
     && (!applied.window || r.window)
     && (!applied.outlet || r.outlet);
+}
+
+async function updateAvailability() {
+  try {
+    const roomIds = await getUnavailableRooms(
+      applied.date,
+      applied.hour,
+      applied.hour + 1
+    );
+
+    unavailableRoomIds = new Set(roomIds.map(Number));
+
+    render();
+
+  } catch (error) {
+    console.error('Availability error:', error);
+    $('map').textContent = 'Could not check room availability. Please try again.';
+  }
 }
 
 function renderFloorSelect() {
@@ -278,7 +297,31 @@ function setLibrary(lib) {
   renderFloorSelect();
   renderFilters();
   applied = readFilters();
-  render();
+  updateAvailability();
+}
+
+function updateTimeOptions() {
+  const now = new Date();
+  const selectedDate = $('date').value;
+  const currentDate = today();
+
+  const firstHour = 8;
+  const lastHour = 20;
+
+  let earliestHour = firstHour;
+
+  if (selectedDate === currentDate) {
+    earliestHour = Math.max(firstHour, now.getHours() + 1);
+  }
+
+  $('time').innerHTML = hourOptions(earliestHour, lastHour, false);
+
+  if (earliestHour > lastHour) {
+    $('time').innerHTML = '';
+    return;
+  }
+
+  $('time').value = earliestHour;
 }
 
 async function init() {
@@ -291,15 +334,22 @@ async function init() {
   $('library').innerHTML = libraries.map((l) => `<option value="${l}">${l}</option>`).join('');
   $('library').addEventListener('change', () => setLibrary($('library').value));
 
-  $('date').value = today();
-  $('time').innerHTML = hourOptions(8, 20, true);
-  $('time').value = 13;
-  $('search').addEventListener('click', () => {
-    applied = readFilters();
-    state.floor = applied.floor;
-    state.selected = null;
-    render();
+  $('date').min = today();
+$('date').max = maxBookingDate();
+$('date').value = today();
+
+  updateTimeOptions();
+
+  $('date').addEventListener('change', () => {
+    updateTimeOptions();
   });
+  
+  $('search').addEventListener('click', () => {
+  applied = readFilters();
+  state.floor = applied.floor;
+  state.selected = null;
+  updateAvailability();
+});
 
   const first = libraries.find((l) => norm(l) === norm(DEFAULT_LIBRARY)) || libraries[0];
   $('library').value = first;
