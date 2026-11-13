@@ -1,0 +1,57 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>Check In | MyStudySpace</title>
+
+  <link rel="stylesheet" href="css/base.css">
+</head>
+<body>
+
+  <!--
+    MyStudySpace - Reservation Check-In Interface
+    User Story: US-08
+    Sprint: 1
+
+    This is a standalone development interface.
+    It will later be integrated into My Reservations.
+
+    No student IDs or room reservations are hard-coded.
+  -->
+
+  <main>
+    <h1>MyStudySpace</h1>
+    <h2>Reservation Check-In</h2>
+
+    <section id="reservation-details">
+      <p>
+        Your reservation details will appear here
+        after they are loaded from the backend.
+      </p>
+    </section>
+
+    <!--
+      The button is disabled until the application
+      loads a valid reservation and confirms that
+      check-in is available.
+    -->
+    <button
+      type="button"
+      id="check-in-button"
+      disabled
+    >
+      Check In
+    </button>
+
+    <!-- Displays success messages or errors. -->
+    <p id="check-in-message" role="status" aria-live="polite"></p>
+  </main>
+
+  <!-- Frontend function that communicates with the API. -->
+  <script src="js/checkin.js"></script>
+
+</body>
+</html>

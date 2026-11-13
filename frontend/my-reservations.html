@@ -1,0 +1,71 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>My Reservations | MyStudySpace</title>
+
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/rooms.css">
+</head>
+
+<body>
+
+  <!-- MyStudySpace: Sprint 1 Check-In Feature -->
+
+  <header class="topbar">
+    <span class="logo">MyStudySpace</span>
+
+    <nav>
+      <a href="index.html">Find a Room</a>
+      <a href="my-reservations.html" class="active">
+        My Reservations
+      </a>
+    </nav>
+  </header>
+
+  <main class="layout">
+    <section class="panel">
+
+      <h1>My Reservations</h1>
+
+      <p>
+        View your study room reservations
+        and check in when your reservation begins.
+      </p>
+
+      <div id="reservation-details">
+        <p>Loading your reservation information...</p>
+      </div>
+
+      <button
+        type="button"
+        class="btn"
+        id="check-in-button"
+        disabled
+      >
+        Check In
+      </button>
+
+      <p
+        id="check-in-message"
+        role="status"
+        aria-live="polite"
+      ></p>
+
+    </section>
+  </main>
+
+  <!-- Existing Check-In functionality -->
+  <script src="js/checkin.js"></script>
+
+  <script>
+    // Reservation must be retrieved from the backend.
+    // Do not allow check-in without a valid reservation.
+    initializeCheckIn(null);
+  </script>
+
+</body>
+</html>
