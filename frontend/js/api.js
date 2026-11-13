@@ -32,7 +32,6 @@ async function getUnavailableRooms(date, start, end) {
   return data.room_ids;
 }
 
-
 async function createReservation(
   roomId,
   date,
