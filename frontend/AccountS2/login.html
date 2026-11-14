@@ -1,0 +1,150 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Log In | MyStudySpace</title>
+
+  <!-- Use the same styling as the homepage -->
+  <link rel="stylesheet" href="../css/base.css">
+
+  <style>
+    /* Keep the login form centered */
+    .login-panel {
+      max-width: 520px;
+      margin: 50px auto;
+      padding: 30px;
+    }
+
+    .login-panel h1 {
+      margin: 0;
+    }
+
+    /* Match the registration form fields */
+    .login-panel input {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      font: inherit;
+    }
+
+    .login-panel label {
+      font-weight: 600;
+      color: var(--ink);
+    }
+
+    /* Account options below the form */
+    .account-links {
+      text-align: center;
+      margin-top: 24px;
+      border-top: 1px solid var(--line);
+      padding-top: 20px;
+    }
+
+    .account-links a {
+      color: var(--primary);
+    }
+
+    .account-links .btn {
+      display: block;
+      text-decoration: none;
+    }
+  </style>
+</head>
+
+<body>
+  <!-- Main website navigation -->
+  <header class="topbar">
+    <span class="logo">MyStudySpace</span>
+
+    <nav>
+      <a href="../index.html">Find a Room</a>
+      <a href="../my-reservations.html">My Reservations</a>
+    </nav>
+  </header>
+
+  <!-- Login form for existing accounts -->
+  <main class="panel login-panel">
+    <h1>Welcome Back!</h1>
+    <p>Log in to access your MyStudySpace account.</p>
+
+    <form id="login-form">
+      <label for="email">Email Address</label>
+      <input
+        type="email"
+        id="email"
+        placeholder="you@example.com"
+        autocomplete="email"
+        required
+      >
+
+      <label for="password">Password</label>
+      <input
+        type="password"
+        id="password"
+        placeholder="Enter your password"
+        autocomplete="current-password"
+        required
+      >
+
+      <button class="btn" type="submit">Log In</button>
+    </form>
+
+    <!-- Display login errors -->
+    <p id="message" role="status" aria-live="polite"></p>
+
+    <!-- Other ways to access MyStudySpace -->
+    <div class="account-links">
+      <p>Don't have an account?</p>
+
+      <a href="register.html" class="btn secondary">
+        Create an Account
+      </a>
+
+      <p><a href="guest.html">Continue as Guest</a></p>
+    </div>
+  </main>
+
+  <script>
+    // Check login information using the backend.
+    document.getElementById('login-form')
+      .addEventListener('submit', async function (event) {
+        event.preventDefault();
+
+        const email = document.getElementById('email').value.trim();
+        const password = document.getElementById('password').value;
+        const message = document.getElementById('message');
+        const button = this.querySelector('button');
+
+        button.disabled = true;
+        message.textContent = 'Logging in...';
+
+        try {
+          // Send the login details to the account API.
+          const response = await fetch('/api/accounts/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password })
+          });
+
+          const result = await response.json();
+
+          if (!response.ok) {
+            throw new Error(result.error || 'Login failed.');
+          }
+
+          // Return to the homepage after successful login.
+          window.location.href = '../index.html';
+
+        } catch (error) {
+          message.textContent = error.message;
+          message.style.color = '#b42318';
+        } finally {
+          button.disabled = false;
+        }
+      });
+  </script>
+</body>
+</html>

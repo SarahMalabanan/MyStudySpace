@@ -23,6 +23,8 @@
   },
   "homepage": "https://github.com/SarahMalabanan/MyStudySpace#readme",
   "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "jsonwebtoken": "^9.0.3",
     "mysql2": "^3.24.6",
     "vercel": "^65.2.0"
   }

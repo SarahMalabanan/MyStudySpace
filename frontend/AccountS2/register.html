@@ -1,0 +1,228 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Create an Account | MyStudySpace</title>
+
+  <!-- Use the same styling as the homepage -->
+  <link rel="stylesheet" href="../css/base.css">
+
+  <style>
+    /* Center the registration form */
+    .register-panel {
+      max-width: 520px;
+      margin: 50px auto;
+      padding: 30px;
+    }
+
+    .register-panel h1 {
+      margin: 0;
+    }
+
+    /* Display first and last name side by side */
+    .name-fields {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    /* Match the existing website's input styling */
+    .register-panel input {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      font: inherit;
+    }
+
+    .register-panel label {
+      font-weight: 600;
+      color: var(--ink);
+    }
+
+    /* Keep navigation links below the form */
+    .account-links {
+      text-align: center;
+      margin-top: 20px;
+    }
+
+    .account-links a {
+      color: var(--primary);
+    }
+
+    #message {
+      margin-top: 15px;
+    }
+
+    /* Stack name fields on smaller screens */
+    @media (max-width: 480px) {
+      .name-fields {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <!-- Main website navigation -->
+  <header class="topbar">
+    <span class="logo">MyStudySpace</span>
+
+    <nav>
+      <a href="../index.html">Find a Room</a>
+      <a href="../my-reservations.html">My Reservations</a>
+    </nav>
+  </header>
+
+  <!-- Account registration form -->
+  <main class="panel register-panel">
+    <h1>Create an Account</h1>
+    <p>Save your preferences and manage your study room reservations.</p>
+
+    <form id="register-form">
+
+      <!-- Collect the user's first and last name -->
+      <div class="name-fields">
+        <div>
+          <label for="first-name">First Name</label>
+          <input
+            type="text"
+            id="first-name"
+            placeholder="Enter your first name"
+            autocomplete="given-name"
+            maxlength="50"
+            required
+          >
+        </div>
+
+        <div>
+          <label for="last-name">Last Name</label>
+          <input
+            type="text"
+            id="last-name"
+            placeholder="Enter your last name"
+            autocomplete="family-name"
+            maxlength="50"
+            required
+          >
+        </div>
+      </div>
+
+      <!-- Email must be valid and unique -->
+      <label for="email">Email Address</label>
+      <input
+        type="email"
+        id="email"
+        placeholder="you@example.com"
+        autocomplete="email"
+        maxlength="255"
+        required
+      >
+
+      <!-- Password must contain at least 8 characters -->
+      <label for="password">Password</label>
+      <input
+        type="password"
+        id="password"
+        placeholder="Create a password"
+        autocomplete="new-password"
+        minlength="8"
+        required
+      >
+
+      <!-- Confirm that both passwords match -->
+      <label for="confirm-password">Confirm Password</label>
+      <input
+        type="password"
+        id="confirm-password"
+        placeholder="Confirm your password"
+        autocomplete="new-password"
+        minlength="8"
+        required
+      >
+
+      <button class="btn" type="submit">
+        Create Account
+      </button>
+    </form>
+
+    <!-- Show registration results without refreshing the page -->
+    <p id="message" role="status" aria-live="polite"></p>
+
+    <!-- Other account options -->
+    <div class="account-links">
+      <p>
+        Already have an account?
+        <a href="login.html">Log In</a>
+      </p>
+
+      <p>
+        <a href="guest.html">Continue as Guest</a>
+      </p>
+    </div>
+  </main>
+
+  <script>
+    // Send new account information to the registration API.
+    document.getElementById('register-form')
+      .addEventListener('submit', async function (event) {
+        event.preventDefault();
+
+        // Get the information entered by the user.
+        const firstName = document.getElementById('first-name').value.trim();
+        const lastName = document.getElementById('last-name').value.trim();
+        const email = document.getElementById('email').value.trim();
+        const password = document.getElementById('password').value;
+        const confirmPassword = document.getElementById('confirm-password').value;
+        const message = document.getElementById('message');
+        const button = this.querySelector('button[type="submit"]');
+
+        // Make sure the passwords match before saving.
+        if (password !== confirmPassword) {
+          message.textContent = 'Passwords do not match.';
+          return;
+        }
+
+        button.disabled = true;
+        message.textContent = 'Creating your account...';
+
+        try {
+          // The backend validates and saves the account to MySQL.
+          const response = await fetch('/api/accounts/register', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              firstName,
+              lastName,
+              email,
+              password
+            })
+          });
+
+          const result = await response.json();
+
+          // Display an error if registration was unsuccessful.
+          if (!response.ok) {
+            throw new Error(result.error || 'Registration failed.');
+          }
+
+          // Clear the form after a successful registration.
+          message.textContent = 'Account created successfully! You can now log in.';
+          message.style.color = 'green';
+          this.reset();
+
+        } catch (error) {
+          message.textContent = error.message;
+          message.style.color = '#b42318';
+
+        } finally {
+          button.disabled = false;
+        }
+      });
+  </script>
+</body>
+</html>

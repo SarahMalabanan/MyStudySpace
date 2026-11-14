@@ -24,13 +24,13 @@
     <!-- Allows users to switch between library locations -->
     <select class="location" id="library" aria-label="Library location"></select>
 
-    <!-- Opens the guest access page -->
-    <a href="AccountS2/guest.html" class="btn"
+    <!-- Opens guest access or account settings based on login status -->
+    <a href="AccountS2/guest.html" class="btn" id="account-link"
        style="width:auto; margin:0; padding:8px 18px; text-decoration:none;">
       Guest Access
     </a>
 
-    <!-- Existing account icon -->
+    <!-- Displays the logged-in user's initials -->
     <div class="avatar" title="Account">NT</div>
   </header>
 
@@ -97,5 +97,40 @@
   <script src="js/utils.js"></script>
   <script src="js/api.js"></script>
   <script src="js/rooms.js"></script>
+
+  <script>
+    // Check whether the visitor is logged into MyStudySpace.
+    async function checkAccount() {
+      try {
+        const response = await fetch('/api/accounts/recognizeduser');
+
+        // Keep Guest Access visible if no valid session exists.
+        if (!response.ok) return;
+
+        const user = await response.json();
+        const accountLink = document.getElementById('account-link');
+
+        // Show Account Settings instead of Guest Access.
+        accountLink.textContent = 'Account Settings';
+        accountLink.href = 'AccountS2/settings.html';
+
+        // Replace NT with the user's initials.
+        const initials =
+          (user.first_name?.[0] || '') +
+          (user.last_name?.[0] || '');
+
+        if (initials) {
+          document.querySelector('.avatar').textContent =
+            initials.toUpperCase();
+        }
+
+      } catch (error) {
+        // Keep guest navigation if the session cannot be checked.
+        console.error('Could not check account session.');
+      }
+    }
+
+    checkAccount();
+  </script>
 </body>
 </html>

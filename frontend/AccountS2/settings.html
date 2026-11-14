@@ -1,0 +1,216 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Account Settings | MyStudySpace</title>
+
+  <!-- Use the existing MyStudySpace theme -->
+  <link rel="stylesheet" href="../css/base.css">
+
+  <style>
+    /* Keep the settings page centered */
+    .settings-panel {
+      max-width: 650px;
+      margin: 40px auto;
+      padding: 30px;
+    }
+
+    .settings-panel h1 {
+      margin: 0;
+    }
+
+    /* Separate each settings category */
+    .settings-section {
+      border-top: 1px solid var(--line);
+      padding-top: 20px;
+      margin-top: 24px;
+    }
+
+    .settings-section h2 {
+      margin: 0 0 12px;
+      font-size: 1.1rem;
+    }
+
+    /* Switch between saved rooms and preferences */
+    .tabs {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+
+    .tabs button {
+      flex: 1;
+      padding: 10px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: white;
+      color: var(--ink);
+      cursor: pointer;
+      font: inherit;
+    }
+
+    .tabs button.active {
+      background: var(--primary);
+      color: white;
+    }
+
+    .saved-content {
+      background: var(--bg);
+      border-radius: 8px;
+      padding: 18px;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    .settings-panel a {
+      color: var(--primary);
+    }
+
+    .logout {
+      background: #b42318;
+    }
+  </style>
+</head>
+
+<body>
+  <!-- Main website navigation -->
+  <header class="topbar">
+    <span class="logo">MyStudySpace</span>
+
+    <nav>
+      <a href="../index.html">Find a Room</a>
+      <a href="../my-reservations.html">My Reservations</a>
+    </nav>
+  </header>
+
+  <!-- Settings are only available to registered users -->
+  <main class="panel settings-panel" id="settings-panel" hidden>
+
+    <h1>Account Settings</h1>
+    <p>Manage your saved rooms, preferences, and account.</p>
+
+    <!-- Favorite rooms and saved filter preferences -->
+    <section class="settings-section">
+      <h2>Favorites</h2>
+
+      <div class="tabs">
+        <button type="button" class="active" id="rooms-tab">
+          Rooms
+        </button>
+
+        <button type="button" id="preferences-tab">
+          Preferences
+        </button>
+      </div>
+
+      <!-- Saved study rooms -->
+      <div class="saved-content" id="rooms-content">
+        <h3>Saved Rooms</h3>
+        <p>Your favorite study rooms will appear here.</p>
+      </div>
+
+      <!-- Saved room search preferences -->
+      <div class="saved-content hidden" id="preferences-content">
+        <h3>Saved Preferences</h3>
+        <p>Save your preferred library, floor, time, and accessories.</p>
+
+        <label>
+          <input type="checkbox" id="use-preferences" disabled>
+          Automatically apply saved filters
+        </label>
+        <p>Filter presets will be connected later.</p>
+      </div>
+    </section>
+
+    <!-- Previous and upcoming reservations -->
+    <section class="settings-section">
+      <h2>Reservation History</h2>
+      <p>Your reservation history will appear here.</p>
+    </section>
+
+    <!-- Account password management -->
+    <section class="settings-section">
+      <h2>Account Security</h2>
+      <p>Password management will be added here.</p>
+    </section>
+
+    <!-- End the registered user's session -->
+    <section class="settings-section">
+      <h2>Log Out</h2>
+      <button class="btn logout" id="logout-button">
+        Log Out
+      </button>
+    </section>
+
+    <p id="message" role="status" aria-live="polite"></p>
+  </main>
+
+  <script>
+    // Only allow registered users to view account settings.
+    async function loadSettings() {
+      try {
+        const response = await fetch('/api/accounts/recognizeduser');
+
+        if (!response.ok) {
+          window.location.replace('login.html');
+          return;
+        }
+
+        document.getElementById('settings-panel').hidden = false;
+
+      } catch (error) {
+        window.location.replace('login.html');
+      }
+    }
+
+    // Switch between favorite rooms and saved preferences.
+    const roomsTab = document.getElementById('rooms-tab');
+    const preferencesTab = document.getElementById('preferences-tab');
+
+    roomsTab.addEventListener('click', () => {
+      roomsTab.classList.add('active');
+      preferencesTab.classList.remove('active');
+
+      document.getElementById('rooms-content').classList.remove('hidden');
+      document.getElementById('preferences-content').classList.add('hidden');
+    });
+
+    preferencesTab.addEventListener('click', () => {
+      preferencesTab.classList.add('active');
+      roomsTab.classList.remove('active');
+
+      document.getElementById('preferences-content').classList.remove('hidden');
+      document.getElementById('rooms-content').classList.add('hidden');
+    });
+
+    // End the login session using the existing logout API.
+    document.getElementById('logout-button')
+      .addEventListener('click', async function () {
+        this.disabled = true;
+
+        try {
+          const response = await fetch('/api/accounts/logout', {
+            method: 'POST'
+          });
+
+          if (!response.ok) {
+            throw new Error('Logout failed');
+          }
+
+          window.location.replace('guest.html');
+
+        } catch (error) {
+          document.getElementById('message').textContent =
+            'Could not log out. Please try again.';
+          this.disabled = false;
+        }
+      });
+
+    loadSettings();
+  </script>
+</body>
+</html>
