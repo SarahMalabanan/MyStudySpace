@@ -6,11 +6,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Guest Access | MyStudySpace</title>
 
-  <!-- Use the same colors and styling as the homepage -->
+  <!-- Reuse the homepage styling. -->
   <link rel="stylesheet" href="../css/base.css">
 
   <style>
-    /* Center the guest form on the page */
+    /* Center the guest access panel. */
     .guest-panel {
       max-width: 520px;
       margin: 50px auto;
@@ -21,9 +21,10 @@
       margin: 0;
     }
 
-    /* Style the guest information fields */
+    /* Style guest information fields. */
     .guest-panel input {
       width: 100%;
+      box-sizing: border-box;
       padding: 12px;
       border: 1px solid var(--line);
       border-radius: 8px;
@@ -35,7 +36,7 @@
       color: var(--ink);
     }
 
-    /* Separate guest access from account registration */
+    /* Separate registered account options. */
     .account-option {
       text-align: center;
       border-top: 1px solid var(--line);
@@ -43,7 +44,6 @@
       padding-top: 20px;
     }
 
-    /* Keep the registration button consistent with the website */
     .account-option .btn {
       display: block;
       text-decoration: none;
@@ -52,12 +52,41 @@
     .account-option p a {
       color: var(--primary);
     }
+
+    /* Active guest session section. */
+    .guest-session {
+      margin-top: 20px;
+    }
+
+    .guest-session p {
+      margin-bottom: 18px;
+    }
+
+    /* End Guest Session button. */
+    .end-guest-button {
+      background: #b42318;
+      color: white;
+    }
+
+    .end-guest-button:hover {
+      background: #912018;
+    }
+
+    /* Hide inactive sections. */
+    .hidden {
+      display: none !important;
+    }
+
+    #guest-message {
+      margin-top: 14px;
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
   </style>
 </head>
 
 <body>
-
-  <!-- Main website navigation -->
+  <!-- Existing website navigation. -->
   <header class="topbar">
     <span class="logo">MyStudySpace</span>
 
@@ -67,13 +96,12 @@
     </nav>
   </header>
 
-  <!-- Guest access form -->
   <main class="panel guest-panel">
 
     <h1>Welcome to MyStudySpace</h1>
     <p>Reserve study rooms without creating an account.</p>
 
-    <!-- Collect the guest's contact information -->
+    <!-- GUEST ACCESS FORM -->
     <form id="guest-form">
 
       <label for="first-name">First Name</label>
@@ -101,7 +129,35 @@
       </button>
     </form>
 
-    <!-- Account registration is optional -->
+    <!-- ACTIVE GUEST SESSION -->
+    <div class="guest-session hidden" id="guest-session">
+
+      <h2 id="guest-welcome">Guest Access</h2>
+
+      <p>
+        You are currently browsing MyStudySpace as a guest.
+      </p>
+
+      <a
+        href="../index.html"
+        class="btn"
+        style="display:block; text-align:center; text-decoration:none;"
+      >
+        Continue Browsing
+      </a>
+
+      <button
+        class="btn end-guest-button"
+        id="end-guest-session"
+        type="button"
+      >
+        End Guest Session
+      </button>
+    </div>
+
+    <p id="guest-message" role="status" aria-live="polite"></p>
+
+    <!-- ACCOUNT REGISTRATION -->
     <div class="account-option">
 
       <strong>
@@ -112,12 +168,10 @@
         Create an account for a more personalized experience.
       </p>
 
-      <!-- Opens registration in the same AccountS2 folder -->
       <a href="register.html" class="btn secondary">
         Create an Account
       </a>
 
-      <!-- Opens login in the same AccountS2 folder -->
       <p>
         Already have an account?
         <a href="login.html">Log In</a>
@@ -128,40 +182,109 @@
 
   <script>
     /*
-     * Guest Access - Sprint 2
-     * Checks the guest's information and saves it
-     * temporarily while they use the website.
+     * MyStudySpace - Guest Access
      *
-     * This does not create a verified login session.
+     * Guests enter their first name and phone number.
+     * Information is temporarily stored in sessionStorage.
+     *
+     * Guest access does not create a registered user.
+     * Ending a guest session does not affect account login.
      */
 
-    document.getElementById('guest-form')
-      .addEventListener('submit', function (event) {
+    const guestForm = document.getElementById('guest-form');
+    const guestSession = document.getElementById('guest-session');
+    const guestWelcome = document.getElementById('guest-welcome');
+    const guestMessage = document.getElementById('guest-message');
 
-        // Stop the form from refreshing the page
-        event.preventDefault();
+    // Check for an existing guest session.
+    function hasGuestSession() {
+      return Boolean(
+        sessionStorage.getItem('guestName') &&
+        sessionStorage.getItem('guestPhone')
+      );
+    }
 
-        // Get the guest's name and phone number
-        const firstName = document
-          .getElementById('first-name').value.trim();
+    // Show the correct page based on guest session status.
+    function updateGuestPage() {
+      const active = hasGuestSession();
 
-        const phone = document
-          .getElementById('phone').value.trim();
+      guestForm.classList.toggle('hidden', active);
+      guestSession.classList.toggle('hidden', !active);
 
-        // Check that both fields contain valid information
-        if (!firstName || !/^\+?[\d\s().-]{10,20}$/.test(phone)) {
-          alert('Please enter a valid name and phone number.');
-          return;
-        }
+      if (active) {
+        const firstName = sessionStorage.getItem('guestName');
 
-        // Save guest information for the current browser tab
-        sessionStorage.setItem('guestName', firstName);
-        sessionStorage.setItem('guestPhone', phone);
+        // Safely display the guest's first name.
+        guestWelcome.textContent = `Welcome back, ${firstName}!`;
+      } else {
+        guestWelcome.textContent = 'Guest Access';
+      }
+    }
 
-        // Send the guest back to the homepage
-        window.location.href = '../index.html';
+    // Validate and format US phone numbers.
+    function normalizePhone(phone) {
+      if (!/^\+?[\d\s().-]+$/.test(phone)) {
+        return null;
+      }
+
+      const digits = phone.replace(/\D/g, '');
+
+      if (digits.length === 10) {
+        return '+1' + digits;
+      }
+
+      if (digits.length === 11 && digits.startsWith('1')) {
+        return '+' + digits;
+      }
+
+      return null;
+    }
+
+    // Start a guest session.
+    guestForm.addEventListener('submit', function (event) {
+      event.preventDefault();
+
+      const firstName = document
+        .getElementById('first-name').value.trim();
+
+      const phone = document
+        .getElementById('phone').value.trim();
+
+      const formattedPhone = normalizePhone(phone);
+
+      if (!firstName || !formattedPhone) {
+        guestMessage.textContent =
+          'Please enter a valid name and US phone number.';
+        return;
+      }
+
+      // Store temporary guest information.
+      sessionStorage.setItem('guestName', firstName);
+      sessionStorage.setItem('guestPhone', formattedPhone);
+
+      guestMessage.textContent = '';
+
+      // Return to the homepage.
+      window.location.href = '../index.html';
+    });
+
+    // End the guest session without changing account sessions.
+    document.getElementById('end-guest-session')
+      .addEventListener('click', function () {
+
+        sessionStorage.removeItem('guestName');
+        sessionStorage.removeItem('guestPhone');
+
+        guestForm.reset();
+
+        guestMessage.textContent =
+          'Your guest session has ended.';
+
+        updateGuestPage();
       });
-  </script>
 
+    // Display the correct guest page on load.
+    updateGuestPage();
+  </script>
 </body>
 </html>

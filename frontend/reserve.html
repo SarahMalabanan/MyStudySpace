@@ -1,58 +1,125 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
   <title>Reserve | MyStudySpace</title>
+
+  <!-- Reuse the main website styling and reservation page styling. -->
   <link rel="stylesheet" href="css/base.css">
   <link rel="stylesheet" href="css/reserve.css">
 </head>
+
 <body>
+  <!-- Main navigation bar for the reservation page. -->
   <header class="topbar">
     <span class="logo">MyStudySpace</span>
+
     <nav>
       <a href="index.html" class="active">Find a Room</a>
       <a href="my-reservations.html">My Reservations</a>
     </nav>
+
+    <!-- Keep the existing account icon. -->
     <div class="avatar" title="Account">NT</div>
   </header>
 
+  <!-- Three-column layout for room details, scheduling, and summary. -->
   <main class="layout three">
+
+    <!-- ROOM INFORMATION -->
+    <!-- reserve.js displays the room selected from the homepage. -->
     <aside class="panel" id="room-info"></aside>
 
+    <!-- RESERVATION DATE AND TIME -->
     <section class="panel">
       <h2>Select date &amp; time</h2>
+
       <div class="times">
-        <div><label for="date">Date</label><input type="date" id="date"></div>
-        <div><label for="start">Start time</label><select id="start"></select></div>
-        <div><label for="end">End time</label><select id="end"></select></div>
+
+        <!-- Date of the reservation. -->
+        <div>
+          <label for="date">Date</label>
+          <input type="date" id="date">
+        </div>
+
+        <!-- Reservation starting time. -->
+        <div>
+          <label for="start">Start time</label>
+          <select id="start"></select>
+        </div>
+
+        <!-- Reservation ending time. -->
+        <div>
+          <label for="end">End time</label>
+          <select id="end"></select>
+        </div>
+
       </div>
-      <ol class="rules">
+
+      <!-- Library rules and reservation requirements. -->
+      <div class="rules">
         <h3>Reservation &amp; library rules</h3>
-        <li>Reservations last up to 2 hours.</li>
-        <li>Check in within 15 minutes of your start time, or the room is released.</li>
-        <li>Keep noise low and leave the room clean.</li>
-        <li>Cancel ahead of time if your plans change.</li>
-      </ol>
+
+        <ol>
+          <li>Reservations last up to 2 hours.</li>
+
+          <li>
+            Check in within 10 minutes of your start time,
+            or the room is released.
+          </li>
+
+          <li>Keep noise low and leave the room clean.</li>
+
+          <li>Cancel ahead of time if your plans change.</li>
+        </ol>
+      </div>
     </section>
 
+    <!-- RESERVATION SUMMARY -->
+    <!-- The selected room, date, time, and location appear here. -->
     <aside class="panel summary">
       <h2>Summary</h2>
+
       <dl>
-        <dt>Room</dt><dd id="s-room"></dd>
-        <dt>Date</dt><dd id="s-date"></dd>
-        <dt>Time</dt><dd id="s-time"></dd>
-        <dt>Location</dt><dd id="s-floor"></dd>
+        <dt>Room</dt>
+        <dd id="s-room"></dd>
+
+        <dt>Date</dt>
+        <dd id="s-date"></dd>
+
+        <dt>Time</dt>
+        <dd id="s-time"></dd>
+
+        <dt>Location</dt>
+        <dd id="s-floor"></dd>
       </dl>
-      <p class="msg" id="msg"></p>
-      <button class="btn" id="confirm">Confirm reservation</button>
-      <button class="btn secondary" id="cancel">Cancel</button>
+
+      <!-- Display validation errors and reservation confirmations. -->
+      <p class="msg" id="msg" role="status" aria-live="polite"></p>
+
+      <!-- Sends the reservation to the MySQL API through reserve.js. -->
+      <button class="btn" id="confirm" type="button" disabled>
+        Confirm reservation
+      </button>
+
+      <!-- Return to the homepage without submitting a reservation. -->
+      <button class="btn secondary" id="cancel" type="button">
+        Cancel
+      </button>
     </aside>
+
   </main>
 
-  <script src="js/mock-data.js"></script>
+  <!-- Shared date, time, and room display utilities. -->
   <script src="js/utils.js"></script>
+
+  <!-- Existing API functions for retrieving room information. -->
   <script src="js/api.js"></script>
+
+  <!-- Reservation validation and MySQL submission functionality. -->
   <script src="js/reserve.js"></script>
 </body>
 </html>

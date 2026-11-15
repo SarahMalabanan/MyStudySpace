@@ -6,6 +6,10 @@ const pickMode = new URLSearchParams(location.search).has('pick');
 let rooms = [];
 let applied = {};
 
+// I keep the saved room IDs separate from the room map data.
+let favoriteRoomIds = new Set();
+let favoritesLoaded = false;
+
 const state = {
   library: null,
   floor: null,
@@ -14,13 +18,18 @@ const state = {
 
 const floorsFor = (lib) =>
   [...new Set(
-    rooms.filter((r) => r.library === lib).map((r) => r.floor)
+    rooms.filter((r) => r.library === lib).map((r) => Number(r.floor))
   )].sort((a, b) => a - b);
 
 const DEFAULT_LIBRARY = 'Nancy Thompson Learning Commons';
 
 const norm = (s) =>
   String(s).trim().toLowerCase().replace(/\s+/g, ' ');
+
+// I compare IDs as strings because the API may return numbers or strings.
+function sameRoomId(a, b) {
+  return a != null && b != null && String(a) === String(b);
+}
 
 function floorName(floor) {
   const names = {
@@ -31,7 +40,7 @@ function floorName(floor) {
   return names[floor] || `Floor ${floor}`;
 }
 
-// Match the library name to a floor plan ignoring extra spaces and capital letters.
+// Match the library name to its floor plan.
 function planFor() {
   const key = Object.keys(FLOORPLANS)
     .find((k) => norm(k) === norm(state.library));
@@ -95,7 +104,9 @@ function renderMap() {
   map.innerHTML = '';
 
   const floorRooms = rooms.filter(
-    (r) => r.library === state.library && r.floor === state.floor
+    (r) =>
+      r.library === state.library &&
+      Number(r.floor) === Number(state.floor)
   );
 
   // FRANK J. GUARINI LIBRARY: Keep the existing room grid.
@@ -113,12 +124,11 @@ function renderMap() {
 
     floorRooms.forEach((r) => {
       const ok = isAvailable(r);
-
       const b = document.createElement('button');
 
       b.className = 'tile' +
         (ok ? '' : ' unavailable') +
-        (state.selected === r.id ? ' selected' : '');
+        (sameRoomId(state.selected, r.id) ? ' selected' : '');
 
       b.innerHTML = `
         <span>${r.room_code}</span>
@@ -163,7 +173,7 @@ function renderMap() {
   floorRooms.forEach((r) => {
     const s = plan.spots[r.room_code];
 
-    // Skip rooms that do not have a mapped location.
+    // Skip rooms without a mapped location.
     if (!s) return;
 
     const ok = isAvailable(r);
@@ -188,7 +198,7 @@ function renderMap() {
     rect.setAttribute(
       'class',
       'spot ' +
-      (state.selected === r.id
+      (sameRoomId(state.selected, r.id)
         ? 'selected'
         : ok ? 'available' : 'unavailable')
     );
@@ -258,6 +268,7 @@ function enablePicker(svg, plan) {
 
     if (!first) {
       first = { x, y };
+
       out.textContent =
         `First corner: ${x}, ${y}. Now click the opposite corner.`;
     } else {
@@ -300,9 +311,79 @@ function libraryFeatures(libraryRooms) {
   return features;
 }
 
+// FAVORITES: Load the current account's saved rooms from MySQL.
+// The server identifies the account using its login session cookie.
+// Guests cannot access the Favorites API.
+async function loadFavorites() {
+  favoritesLoaded = false;
+  favoriteRoomIds.clear();
+  updateFavoriteButton();
+
+  try {
+    const response = await fetch('/api/accounts/favorites', {
+      credentials: 'same-origin',
+      cache: 'no-store'
+    });
+
+    // A guest or expired session cannot manage saved rooms.
+    if (!response.ok) {
+      return;
+    }
+
+    const favorites = await response.json();
+
+    if (!Array.isArray(favorites)) {
+      throw new Error('Invalid favorites response.');
+    }
+
+    // A Set makes it easy to check whether a room is already saved.
+    favoriteRoomIds = new Set(
+      favorites.map(room => String(room.id))
+    );
+
+    favoritesLoaded = true;
+
+  } catch (error) {
+    console.error('Could not load favorite rooms:', error);
+
+  } finally {
+    // Update the button if room details are already displayed.
+    updateFavoriteButton();
+  }
+}
+
+// FAVORITES: Update the button whenever a room is selected.
+// We read from the saved room IDs instead of assuming every room is new.
+function updateFavoriteButton() {
+  const button = $('favorite-room');
+
+  if (!button) return;
+
+  // Hide Favorites when there is no verified account connection.
+  if (!favoritesLoaded) {
+    button.hidden = true;
+    return;
+  }
+
+  const saved = favoriteRoomIds.has(String(state.selected));
+
+  button.hidden = false;
+  button.textContent = saved ? '♥ Unsave' : '♡ Save Room';
+  button.setAttribute('aria-pressed', String(saved));
+  button.title = saved
+    ? 'Remove this room from your favorites'
+    : 'Save this room to your favorites';
+
+  // Give an already saved room a subtle filled appearance.
+  button.style.backgroundColor = saved ? 'var(--primary)' : '';
+  button.style.color = saved ? 'white' : '';
+}
+
 // Display the selected room's details and reservation button.
 function renderDetail() {
-  const r = rooms.find((x) => x.id === state.selected);
+  const r = rooms.find(
+    (x) => sameRoomId(x.id, state.selected)
+  );
 
   if (!r) {
     $('detail').innerHTML =
@@ -311,6 +392,9 @@ function renderDetail() {
 
     return;
   }
+
+  // Check availability before allowing a reservation.
+  const available = isAvailable(r);
 
   $('detail').innerHTML = `
     <h2>${r.name}</h2>
@@ -321,31 +405,44 @@ function renderDetail() {
       libraryFeatures(rooms.filter((x) => x.library === r.library))
     )}
     <div>${applied.date} · ${fmtHour(applied.hour)}</div>
-    <div class="status">Available</div>
+    <div class="status">
+      ${available ? 'Available' : 'Unavailable'}
+    </div>
 
-    <button class="btn" id="select-room">
+    <button class="btn" id="select-room" ${available ? '' : 'disabled'}>
       Select room
     </button>
 
-    <button class="btn secondary" id="favorite-room" type="button">
+    <button class="btn secondary" id="favorite-room"
+            type="button" hidden aria-pressed="false">
       ♡ Save Room
     </button>
   `;
 
-  // Keep the original reservation functionality.
+  // Keep the existing reservation button working.
   $('select-room').addEventListener('click', () => {
+    if (!available) return;
+
     location.href =
       `reserve.html?room=${r.id}&date=${applied.date}&start=${applied.hour}`;
   });
 
-  // Save the selected room to the registered user's favorites.
+  // FAVORITES: The same button can save or remove a favorite.
+  // POST adds a room and DELETE removes it from favorite_rooms in MySQL.
   $('favorite-room').addEventListener('click', async () => {
+    if (!favoritesLoaded) return;
+
     const button = $('favorite-room');
+    const roomId = String(r.id);
+
+    // Check its status before deciding which request to send.
+    const alreadySaved = favoriteRoomIds.has(roomId);
+
     button.disabled = true;
 
     try {
       const response = await fetch('/api/accounts/favorites', {
-        method: 'POST',
+        method: alreadySaved ? 'DELETE' : 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
@@ -355,20 +452,39 @@ function renderDetail() {
         })
       });
 
-      const result = await response.json();
-
       if (!response.ok) {
-        throw new Error(result.error || 'Could not save room.');
+        let message = 'Could not update favorite room.';
+
+        try {
+          const result = await response.json();
+          message = result.error || message;
+        } catch (error) {
+          // Keep the default message if the server returns no JSON.
+        }
+
+        throw new Error(message);
       }
 
-      // Update the button after the database confirms the room was saved.
-      button.textContent = '♥ Saved';
+      // Only update the saved IDs after MySQL confirms success.
+      if (alreadySaved) {
+        favoriteRoomIds.delete(roomId);
+      } else {
+        favoriteRoomIds.add(roomId);
+      }
+
+      // Switch between Save Room and Unsave without refreshing.
+      updateFavoriteButton();
 
     } catch (error) {
       alert(error.message);
+
+    } finally {
       button.disabled = false;
     }
   });
+
+  // Show the correct heart status every time room details open.
+  updateFavoriteButton();
 }
 
 function render() {
@@ -406,6 +522,48 @@ function setLibrary(lib) {
   applied = readFilters();
 
   render();
+}
+
+// Open a favorite room using the room ID sent from Account Settings.
+function openSavedRoom() {
+  const viewRoomId =
+    new URLSearchParams(location.search).get('viewRoom');
+
+  if (!viewRoomId) return;
+
+  const savedRoom = rooms.find(
+    (room) => sameRoomId(room.id, viewRoomId)
+  );
+
+  if (!savedRoom) {
+    console.error('Could not find saved room:', viewRoomId);
+    return;
+  }
+
+  // Switch to the library containing the saved room.
+  $('library').value = savedRoom.library;
+  setLibrary(savedRoom.library);
+
+  // Select the saved room's floor.
+  state.floor = Number(savedRoom.floor);
+  $('floor').value = String(savedRoom.floor);
+
+  // Keep the current search filters consistent with the floor.
+  applied = readFilters();
+
+  // Select the room using its ID from the Rooms API.
+  state.selected = savedRoom.id;
+
+  // Reuse the existing map and room details panel.
+  render();
+
+  // Automatically scroll to the selected room's details.
+  requestAnimationFrame(() => {
+    $('detail').scrollIntoView({
+      behavior: 'smooth',
+      block: 'start'
+    });
+  });
 }
 
 // Load rooms and set up the homepage.
@@ -454,6 +612,13 @@ async function init() {
 
   $('library').value = first;
   setLibrary(first);
+
+  // Keep the working Account Settings View shortcut.
+  openSavedRoom();
+
+  // Load favorites after the room map is initialized.
+  // This also updates the heart if a saved room was opened directly.
+  await loadFavorites();
 }
 
 init().catch((e) => {
