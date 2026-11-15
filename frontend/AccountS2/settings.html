@@ -6,11 +6,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Account Settings | MyStudySpace</title>
 
-  <!-- Use the existing MyStudySpace theme -->
+  <!-- Using the same theme as the homepage. -->
   <link rel="stylesheet" href="../css/base.css">
 
   <style>
-    /* Keep the settings page centered */
+    /* Keep the settings page centered. */
     .settings-panel {
       max-width: 650px;
       margin: 40px auto;
@@ -21,19 +21,44 @@
       margin: 0;
     }
 
-    /* Separate each settings category */
+    /* Users can open and close each settings section. */
     .settings-section {
       border-top: 1px solid var(--line);
-      padding-top: 20px;
-      margin-top: 24px;
+      margin-top: 16px;
+      padding-top: 8px;
     }
 
-    .settings-section h2 {
-      margin: 0 0 12px;
+    .settings-section summary {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 14px 0;
       font-size: 1.1rem;
+      font-weight: 600;
+      cursor: pointer;
+      list-style: none;
     }
 
-    /* Switch between saved rooms and preferences */
+    /* Change the arrow when a section is opened. */
+    .settings-section summary::after {
+      content: "⌄";
+      font-size: 1.4rem;
+      color: var(--primary);
+    }
+
+    .settings-section[open] summary::after {
+      content: "⌃";
+    }
+
+    .settings-section summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .section-content {
+      padding: 8px 0 18px;
+    }
+
+    /* Tabs inside Favorites. */
     .tabs {
       display: flex;
       gap: 10px;
@@ -56,28 +81,108 @@
       color: white;
     }
 
+    /* Display saved rooms and preferences. */
     .saved-content {
       background: var(--bg);
       border-radius: 8px;
       padding: 18px;
     }
 
+    .saved-content h3 {
+      margin-top: 0;
+    }
+
     .hidden {
       display: none;
     }
 
-    .settings-panel a {
-      color: var(--primary);
+    /* Keep preference fields organized. */
+    .preference-field {
+      margin-top: 18px;
     }
 
-    .logout {
+    .preference-field > label,
+    .preference-field > .field-title {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 500;
+    }
+
+    .preference-field select {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: white;
+      color: var(--ink);
+      font: inherit;
+    }
+
+    /* Multiple days and accessories can be selected. */
+    .preference-options {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .preference-options label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      width: auto;
+      cursor: pointer;
+      font-weight: normal;
+    }
+
+    .preference-options input {
+      width: auto;
+      margin: 0;
+    }
+
+    /* Toggle for automatically applying saved filters. */
+    .preference-toggle {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 24px;
+      font-weight: 500;
+    }
+
+    .preference-toggle input {
+      width: auto;
+      margin: 0;
+    }
+
+    #preferences-message {
+      margin-top: 14px;
+      font-size: 0.9rem;
+      color: var(--muted);
+    }
+
+    /* Keep Log Out separate from the other settings. */
+    .logout-section {
+      border-top: 1px solid var(--line);
+      margin-top: 24px;
+      padding-top: 12px;
+    }
+
+    .logout-section .btn {
       background: #b42318;
+    }
+
+    .logout-section .btn:hover:not(:disabled) {
+      background: #912018;
+    }
+
+    #message {
+      margin-top: 16px;
+      color: #b42318;
     }
   </style>
 </head>
 
 <body>
-  <!-- Main website navigation -->
+  <!-- Main website navigation. -->
   <header class="topbar">
     <span class="logo">MyStudySpace</span>
 
@@ -87,87 +192,261 @@
     </nav>
   </header>
 
-  <!-- Settings are only available to registered users -->
-  <main class="panel settings-panel" id="settings-panel" hidden>
+  <!-- Keep the page visible while checking the account session. -->
+  <main class="panel settings-panel" id="settings-panel">
 
     <h1>Account Settings</h1>
     <p>Manage your saved rooms, preferences, and account.</p>
 
-    <!-- Favorite rooms and saved filter preferences -->
-    <section class="settings-section">
-      <h2>Favorites</h2>
+    <!-- Display account verification errors here. -->
+    <p id="message" role="status" aria-live="polite"></p>
 
-      <div class="tabs">
-        <button type="button" class="active" id="rooms-tab">
-          Rooms
-        </button>
+    <!-- Favorites contains Rooms and Preferences. -->
+    <details class="settings-section">
+      <summary>Favorites</summary>
 
-        <button type="button" id="preferences-tab">
-          Preferences
-        </button>
+      <div class="section-content">
+
+        <div class="tabs">
+          <button type="button" class="active" id="rooms-tab">
+            Rooms
+          </button>
+
+          <button type="button" id="preferences-tab">
+            Preferences
+          </button>
+        </div>
+
+        <!-- Favorite rooms will be connected to MySQL. -->
+        <div class="saved-content" id="rooms-content">
+          <h3>Saved Rooms</h3>
+          <p>Your favorite study rooms will appear here.</p>
+        </div>
+
+        <!-- These preferences are only for Nancy Thompson. -->
+        <div class="saved-content hidden" id="preferences-content">
+          <h3>Saved Preferences</h3>
+
+          <p>
+            Choose your preferred time, days of the week,
+            floor, and accessories.
+          </p>
+
+          <!-- Preferred reservation time. -->
+          <div class="preference-field">
+            <label for="preferred-time">Time</label>
+
+            <select id="preferred-time">
+              <option value="">Any Time</option>
+              <option value="8">8:00AM – 9:00AM</option>
+              <option value="9">9:00AM – 10:00AM</option>
+              <option value="10">10:00AM – 11:00AM</option>
+              <option value="11">11:00AM – 12:00PM</option>
+              <option value="12">12:00PM – 1:00PM</option>
+              <option value="13">1:00PM – 2:00PM</option>
+              <option value="14">2:00PM – 3:00PM</option>
+              <option value="15">3:00PM – 4:00PM</option>
+              <option value="16">4:00PM – 5:00PM</option>
+              <option value="17">5:00PM – 6:00PM</option>
+              <option value="18">6:00PM – 7:00PM</option>
+              <option value="19">7:00PM – 8:00PM</option>
+              <option value="20">8:00PM – 9:00PM</option>
+            </select>
+          </div>
+
+          <!-- Users can choose multiple preferred days. -->
+          <div class="preference-field">
+            <span class="field-title">Days of the Week</span>
+
+            <div class="preference-options">
+              <label>
+                <input type="checkbox" name="preferred-day" value="0">
+                Sun
+              </label>
+
+              <label>
+                <input type="checkbox" name="preferred-day" value="1">
+                Mon
+              </label>
+
+              <label>
+                <input type="checkbox" name="preferred-day" value="2">
+                Tue
+              </label>
+
+              <label>
+                <input type="checkbox" name="preferred-day" value="3">
+                Wed
+              </label>
+
+              <label>
+                <input type="checkbox" name="preferred-day" value="4">
+                Thu
+              </label>
+
+              <label>
+                <input type="checkbox" name="preferred-day" value="5">
+                Fri
+              </label>
+
+              <label>
+                <input type="checkbox" name="preferred-day" value="6">
+                Sat
+              </label>
+            </div>
+          </div>
+
+          <!-- Preferred floor. -->
+          <div class="preference-field">
+            <label for="preferred-floor">Floor</label>
+
+            <select id="preferred-floor">
+              <option value="">Any Floor</option>
+              <option value="2">Second Floor</option>
+              <option value="3">Third Floor</option>
+            </select>
+          </div>
+
+          <!-- Users can choose multiple accessories. -->
+          <div class="preference-field">
+            <span class="field-title">Accessories</span>
+
+            <div class="preference-options">
+              <label>
+                <input type="checkbox" id="pref-whiteboard">
+                Whiteboard
+              </label>
+
+              <label>
+                <input type="checkbox" id="pref-tv">
+                TV
+              </label>
+
+              <label>
+                <input type="checkbox" id="pref-window">
+                Window
+              </label>
+
+              <label>
+                <input type="checkbox" id="pref-outlet">
+                Outlet
+              </label>
+            </div>
+          </div>
+
+          <!-- This setting remembers whether filters should apply automatically. -->
+          <label class="preference-toggle">
+            <input type="checkbox" id="use-preferences">
+            Automatically apply saved filters
+          </label>
+
+          <!-- Save the selected preferences to a browser cookie. -->
+          <button class="btn" id="save-preferences" type="button" disabled>
+            Save Preferences
+          </button>
+
+          <p id="preferences-message" role="status" aria-live="polite"></p>
+        </div>
       </div>
+    </details>
 
-      <!-- Saved study rooms -->
-      <div class="saved-content" id="rooms-content">
-        <h3>Saved Rooms</h3>
-        <p>Your favorite study rooms will appear here.</p>
+    <!-- Reservation history will be connected to MySQL. -->
+    <details class="settings-section">
+      <summary>Reservation History</summary>
+
+      <div class="section-content">
+        <p>Your reservation history will appear here.</p>
       </div>
+    </details>
 
-      <!-- Saved room search preferences -->
-      <div class="saved-content hidden" id="preferences-content">
-        <h3>Saved Preferences</h3>
-        <p>Save your preferred library, floor, time, and accessories.</p>
+    <!-- Password management will be added later. -->
+    <details class="settings-section">
+      <summary>Account Security</summary>
 
-        <label>
-          <input type="checkbox" id="use-preferences" disabled>
-          Automatically apply saved filters
-        </label>
-        <p>Filter presets will be connected later.</p>
+      <div class="section-content">
+        <p>Password management will be added here.</p>
       </div>
-    </section>
+    </details>
 
-    <!-- Previous and upcoming reservations -->
-    <section class="settings-section">
-      <h2>Reservation History</h2>
-      <p>Your reservation history will appear here.</p>
-    </section>
-
-    <!-- Account password management -->
-    <section class="settings-section">
-      <h2>Account Security</h2>
-      <p>Password management will be added here.</p>
-    </section>
-
-    <!-- End the registered user's session -->
-    <section class="settings-section">
-      <h2>Log Out</h2>
-      <button class="btn logout" id="logout-button">
+    <!-- Log Out stays visible and is not collapsible. -->
+    <div class="logout-section">
+      <button class="btn" id="logout-button" type="button">
         Log Out
       </button>
-    </section>
+    </div>
 
-    <p id="message" role="status" aria-live="polite"></p>
   </main>
 
   <script>
-    // Only allow registered users to view account settings.
-    async function loadSettings() {
+    // I only let a verified account save and load its preferences.
+    let currentUserId = null;
+
+    // Each account gets its own preference cookie.
+    function preferenceCookieName() {
+      return `mystudyspace_preferences_${currentUserId}`;
+    }
+
+    // Read the preferences that were previously saved in this browser.
+    function readPreferenceCookie() {
+      if (!currentUserId) return null;
+
+      const prefix = preferenceCookieName() + '=';
+
+      const entry = document.cookie.split('; ')
+        .find(item => item.startsWith(prefix));
+
+      if (!entry) return null;
+
       try {
-        const response = await fetch('/api/accounts/recognizeduser');
-
-        if (!response.ok) {
-          window.location.replace('login.html');
-          return;
-        }
-
-        document.getElementById('settings-panel').hidden = false;
-
+        return JSON.parse(
+          decodeURIComponent(entry.slice(prefix.length))
+        );
       } catch (error) {
-        window.location.replace('login.html');
+        console.error('Could not read saved preferences:', error);
+        return null;
       }
     }
 
-    // Switch between favorite rooms and saved preferences.
+    // Verify the account without hiding the settings page.
+    async function loadSettings() {
+      const message = document.getElementById('message');
+      const saveButton = document.getElementById('save-preferences');
+
+      try {
+        const response = await fetch('/api/accounts/recognizeduser', {
+          credentials: 'same-origin',
+          cache: 'no-store'
+        });
+
+        if (!response.ok) {
+          throw new Error('Not logged in');
+        }
+
+        const user = await response.json();
+
+        if (user.user_id == null) {
+          throw new Error('Missing account ID');
+        }
+
+        currentUserId = user.user_id;
+        message.textContent = '';
+
+        // Saving is available after the account is verified.
+        saveButton.disabled = false;
+        document.getElementById('use-preferences').disabled = false;
+
+        restorePreferences();
+
+      } catch (error) {
+        message.textContent =
+          'Please log in to save your account preferences.';
+
+        saveButton.disabled = true;
+        document.getElementById('use-preferences').disabled = true;
+      }
+    }
+
+    // Switch between Rooms and Preferences inside Favorites.
     const roomsTab = document.getElementById('rooms-tab');
     const preferencesTab = document.getElementById('preferences-tab');
 
@@ -175,41 +454,125 @@
       roomsTab.classList.add('active');
       preferencesTab.classList.remove('active');
 
-      document.getElementById('rooms-content').classList.remove('hidden');
-      document.getElementById('preferences-content').classList.add('hidden');
+      document.getElementById('rooms-content')
+        .classList.remove('hidden');
+
+      document.getElementById('preferences-content')
+        .classList.add('hidden');
     });
 
     preferencesTab.addEventListener('click', () => {
       preferencesTab.classList.add('active');
       roomsTab.classList.remove('active');
 
-      document.getElementById('preferences-content').classList.remove('hidden');
-      document.getElementById('rooms-content').classList.add('hidden');
+      document.getElementById('preferences-content')
+        .classList.remove('hidden');
+
+      document.getElementById('rooms-content')
+        .classList.add('hidden');
     });
 
-    // End the login session using the existing logout API.
+    // Restore saved time, days, floor, and accessories.
+    function restorePreferences() {
+      const saved = readPreferenceCookie();
+
+      if (!saved) return;
+
+      document.getElementById('preferred-time').value =
+        saved.time || '';
+
+      document.getElementById('preferred-floor').value =
+        saved.floor || '';
+
+      // Restore the days selected by the user.
+      document.querySelectorAll('[name="preferred-day"]')
+        .forEach(input => {
+          input.checked =
+            Array.isArray(saved.days) &&
+            saved.days.includes(input.value);
+        });
+
+      // Restore the selected accessories.
+      ['whiteboard', 'tv', 'window', 'outlet'].forEach(item => {
+        document.getElementById('pref-' + item).checked =
+          Boolean(saved.accessories && saved.accessories[item]);
+      });
+
+      document.getElementById('use-preferences').checked =
+        saved.autoApply === true;
+    }
+
+    // Save the user's preferences for 30 days in this browser.
+    document.getElementById('save-preferences')
+      .addEventListener('click', () => {
+        if (!currentUserId) return;
+
+        const accessories = {};
+
+        ['whiteboard', 'tv', 'window', 'outlet'].forEach(item => {
+          accessories[item] =
+            document.getElementById('pref-' + item).checked;
+        });
+
+        // Room Number is no longer part of search preferences.
+        const preferences = {
+          time: document.getElementById('preferred-time').value,
+
+          days: [
+            ...document.querySelectorAll(
+              '[name="preferred-day"]:checked'
+            )
+          ].map(input => input.value),
+
+          floor: document.getElementById('preferred-floor').value,
+
+          accessories,
+
+          autoApply: document.getElementById('use-preferences').checked
+        };
+
+        const secure =
+          location.protocol === 'https:' ? '; Secure' : '';
+
+        // Save the cookie so the homepage can read these preferences.
+        document.cookie =
+          preferenceCookieName() + '=' +
+          encodeURIComponent(JSON.stringify(preferences)) +
+          '; Path=/; Max-Age=2592000; SameSite=Lax' + secure;
+
+        // Confirm that the browser saved the cookie.
+        document.getElementById('preferences-message').textContent =
+          readPreferenceCookie()
+            ? 'Preferences saved successfully!'
+            : 'Could not save preferences. Please enable cookies and try again.';
+      });
+
+    // Log Out clears the login session and returns to the homepage.
     document.getElementById('logout-button')
       .addEventListener('click', async function () {
         this.disabled = true;
 
         try {
           const response = await fetch('/api/accounts/logout', {
-            method: 'POST'
+            method: 'POST',
+            credentials: 'same-origin'
           });
 
           if (!response.ok) {
             throw new Error('Logout failed');
           }
 
-          window.location.replace('guest.html');
+          window.location.replace('../index.html');
 
         } catch (error) {
           document.getElementById('message').textContent =
             'Could not log out. Please try again.';
+
           this.disabled = false;
         }
       });
 
+    // Check the current account and restore its saved preferences.
     loadSettings();
   </script>
 </body>

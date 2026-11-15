@@ -1,35 +1,53 @@
+
 const $ = (id) => document.getElementById(id);
 const SVG_NS = 'http://www.w3.org/2000/svg';
 const pickMode = new URLSearchParams(location.search).has('pick');
+
 let rooms = [];
 let applied = {};
-const state = { library: null, floor: null, selected: null };
+
+const state = {
+  library: null,
+  floor: null,
+  selected: null
+};
 
 const floorsFor = (lib) =>
-  [...new Set(rooms.filter((r) => r.library === lib).map((r) => r.floor))].sort((a, b) => a - b);
+  [...new Set(
+    rooms.filter((r) => r.library === lib).map((r) => r.floor)
+  )].sort((a, b) => a - b);
+
 const DEFAULT_LIBRARY = 'Nancy Thompson Learning Commons';
-const norm = (s) => String(s).trim().toLowerCase().replace(/\s+/g, ' ');
+
+const norm = (s) =>
+  String(s).trim().toLowerCase().replace(/\s+/g, ' ');
 
 function floorName(floor) {
   const names = {
     2: 'Second Floor',
-    3: 'Third Floor',
+    3: 'Third Floor'
   };
 
   return names[floor] || `Floor ${floor}`;
 }
 
-
-// Match the library name to a floor plan ignoring extra spaces and capital letters
+// Match the library name to a floor plan ignoring extra spaces and capital letters.
 function planFor() {
-  const key = Object.keys(FLOORPLANS).find((k) => norm(k) === norm(state.library));
+  const key = Object.keys(FLOORPLANS)
+    .find((k) => norm(k) === norm(state.library));
+
   return key ? FLOORPLANS[key][state.floor] : undefined;
 }
 
 function readFilters() {
   return {
-    date: $('date').value, hour: Number($('time').value), floor: Number($('floor').value),
-    whiteboard: $('f-whiteboard').checked, tv: $('f-tv').checked, window: $('f-window').checked, outlet: $('f-outlet').checked,
+    date: $('date').value,
+    hour: Number($('time').value),
+    floor: Number($('floor').value),
+    whiteboard: $('f-whiteboard').checked,
+    tv: $('f-tv').checked,
+    window: $('f-window').checked,
+    outlet: $('f-outlet').checked
   };
 }
 
@@ -43,22 +61,35 @@ function isAvailable(r) {
 
 function renderFloorSelect() {
   $('floor').innerHTML = floorsFor(state.library)
-    .map((f) => `<option value="${f}">${floorName(f)}</option>`).join('');
+    .map((f) => `<option value="${f}">${floorName(f)}</option>`)
+    .join('');
+
   $('floor').value = state.floor;
 }
 
 function renderTabs() {
-  $('tabs').innerHTML = floorsFor(state.library).map((n) =>
-    `<button data-floor="${n}" class="${n === state.floor ? 'active' : ''}">${floorName(n)}</button>`).join('');
-  $('tabs').querySelectorAll('button').forEach((b) => b.addEventListener('click', () => {
-    state.floor = Number(b.dataset.floor);
-    $('floor').value = state.floor;
-    state.selected = null;
-    render();
-  }));
+  $('tabs').innerHTML = floorsFor(state.library)
+    .map((n) =>
+      `<button data-floor="${n}" class="${n === state.floor ? 'active' : ''}">
+        ${floorName(n)}
+      </button>`
+    ).join('');
+
+  $('tabs').querySelectorAll('button').forEach((b) => {
+    b.addEventListener('click', () => {
+      state.floor = Number(b.dataset.floor);
+      $('floor').value = state.floor;
+      state.selected = null;
+      render();
+    });
+  });
 }
 
-function choose(r) { state.selected = r.id; render(); }
+function choose(r) {
+  state.selected = r.id;
+  render();
+}
+
 function renderMap() {
   const map = $('map');
   map.innerHTML = '';
@@ -67,7 +98,7 @@ function renderMap() {
     (r) => r.library === state.library && r.floor === state.floor
   );
 
-  // FRANK J. GUARINI LIBRARY: Show rooms as a grid
+  // FRANK J. GUARINI LIBRARY: Keep the existing room grid.
   if (norm(state.library) !== norm(DEFAULT_LIBRARY)) {
     if (!floorRooms.length) {
       map.textContent = 'No rooms on this floor.';
@@ -84,6 +115,7 @@ function renderMap() {
       const ok = isAvailable(r);
 
       const b = document.createElement('button');
+
       b.className = 'tile' +
         (ok ? '' : ' unavailable') +
         (state.selected === r.id ? ' selected' : '');
@@ -94,6 +126,7 @@ function renderMap() {
       `;
 
       b.disabled = !ok;
+
       b.setAttribute(
         'aria-label',
         `${r.name}, ${ok ? 'available' : 'unavailable'}`
@@ -109,7 +142,7 @@ function renderMap() {
     return;
   }
 
-  // NANCY THOMPSON: Keep the original floor-plan map
+  // NANCY THOMPSON: Keep the original interactive floor-plan map.
   const plan = planFor();
 
   if (!plan) {
@@ -130,7 +163,7 @@ function renderMap() {
   floorRooms.forEach((r) => {
     const s = plan.spots[r.room_code];
 
-    // Skip rooms without a mapped location
+    // Skip rooms that do not have a mapped location.
     if (!s) return;
 
     const ok = isAvailable(r);
@@ -161,16 +194,22 @@ function renderMap() {
     );
 
     rect.setAttribute('role', 'button');
-    rect.setAttribute('aria-label',
+
+    rect.setAttribute(
+      'aria-label',
       `${r.name}, ${ok ? 'available' : 'unavailable'}`
     );
 
     const tip = document.createElementNS(SVG_NS, 'title');
-    tip.textContent = `${r.name} · ${r.seats} seats${ok ? '' : ' · unavailable'}`;
+
+    tip.textContent =
+      `${r.name} · ${r.seats} seats${ok ? '' : ' · unavailable'}`;
+
     rect.appendChild(tip);
 
     if (ok) {
       rect.setAttribute('tabindex', '0');
+
       rect.addEventListener('click', () => choose(r));
 
       rect.addEventListener('keydown', (e) => {
@@ -190,26 +229,54 @@ function renderMap() {
   map.appendChild(wrap);
 }
 
-// Add ?pick to the URL, then click two opposite corners of a room to get its [x, y, w, h]
+// Pick mode helps find room coordinates on the floor plan.
 function enablePicker(svg, plan) {
   let first = null;
   let out = $('pick-out');
-  if (!out) { out = document.createElement('div'); out.id = 'pick-out'; $('map').after(out); }
-  out.textContent = 'Pick mode: click the top-left corner of a room, then the bottom-right.';
+
+  if (!out) {
+    out = document.createElement('div');
+    out.id = 'pick-out';
+    $('map').after(out);
+  }
+
+  out.textContent =
+    'Pick mode: click the top-left corner of a room, then the bottom-right.';
+
   svg.style.cursor = 'crosshair';
+
   svg.addEventListener('click', (e) => {
     const b = svg.getBoundingClientRect();
-    const x = Math.round(((e.clientX - b.left) / b.width) * plan.width);
-    const y = Math.round(((e.clientY - b.top) / b.height) * plan.height);
-    if (!first) { first = { x, y }; out.textContent = `First corner: ${x}, ${y}. Now click the opposite corner.`; }
-    else {
-      out.textContent = `[${Math.min(first.x, x)}, ${Math.min(first.y, y)}, ${Math.abs(x - first.x)}, ${Math.abs(y - first.y)}]`;
+
+    const x = Math.round(
+      ((e.clientX - b.left) / b.width) * plan.width
+    );
+
+    const y = Math.round(
+      ((e.clientY - b.top) / b.height) * plan.height
+    );
+
+    if (!first) {
+      first = { x, y };
+      out.textContent =
+        `First corner: ${x}, ${y}. Now click the opposite corner.`;
+    } else {
+      out.textContent = [
+        Math.min(first.x, x),
+        Math.min(first.y, y),
+        Math.abs(x - first.x),
+        Math.abs(y - first.y)
+      ].join(', ');
+
+      out.textContent = `[${out.textContent}]`;
       first = null;
     }
   });
 }
 
-function feature(label, has) { return `<li class="${has ? '' : 'no'}">${label}</li>`; }
+function feature(label, has) {
+  return `<li class="${has ? '' : 'no'}">${label}</li>`;
+}
 
 function libraryFeatures(libraryRooms) {
   const features = [];
@@ -233,61 +300,147 @@ function libraryFeatures(libraryRooms) {
   return features;
 }
 
+// Display the selected room's details and reservation button.
 function renderDetail() {
   const r = rooms.find((x) => x.id === state.selected);
+
   if (!r) {
-    $('detail').innerHTML = '<h2>Room details</h2><p class="empty">Click an available room on the map to see its details.</p>';
+    $('detail').innerHTML =
+      '<h2>Room details</h2>' +
+      '<p class="empty">Click an available room on the map to see its details.</p>';
+
     return;
   }
+
   $('detail').innerHTML = `
     <h2>${r.name}</h2>
     ${roomPhotoHtml(r)}
     <div>Seats ${r.seats}</div>
-    ${featureListHtml(r, libraryFeatures(rooms.filter((x) => x.library === r.library)))}
+    ${featureListHtml(
+      r,
+      libraryFeatures(rooms.filter((x) => x.library === r.library))
+    )}
     <div>${applied.date} · ${fmtHour(applied.hour)}</div>
     <div class="status">Available</div>
-    <button class="btn" id="select-room">Select room</button>`;
+
+    <button class="btn" id="select-room">
+      Select room
+    </button>
+
+    <button class="btn secondary" id="favorite-room" type="button">
+      ♡ Save Room
+    </button>
+  `;
+
+  // Keep the original reservation functionality.
   $('select-room').addEventListener('click', () => {
-    location.href = `reserve.html?room=${r.id}&date=${applied.date}&start=${applied.hour}`;
+    location.href =
+      `reserve.html?room=${r.id}&date=${applied.date}&start=${applied.hour}`;
+  });
+
+  // Save the selected room to the registered user's favorites.
+  $('favorite-room').addEventListener('click', async () => {
+    const button = $('favorite-room');
+    button.disabled = true;
+
+    try {
+      const response = await fetch('/api/accounts/favorites', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        credentials: 'same-origin',
+        body: JSON.stringify({
+          roomId: r.id
+        })
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Could not save room.');
+      }
+
+      // Update the button after the database confirms the room was saved.
+      button.textContent = '♥ Saved';
+
+    } catch (error) {
+      alert(error.message);
+      button.disabled = false;
+    }
   });
 }
 
-function render() { renderTabs(); renderMap(); renderDetail(); }
+function render() {
+  renderTabs();
+  renderMap();
+  renderDetail();
+}
 
-// Show only the accessory filters this library has (e.g. TV instead of Whiteboard)
+// Show only the accessory filters available at the selected library.
 function renderFilters() {
-  const keys = libraryFeatures(rooms.filter((r) => r.library === state.library)).map(([k]) => k);
+  const keys = libraryFeatures(
+    rooms.filter((r) => r.library === state.library)
+  ).map(([k]) => k);
+
   ['whiteboard', 'tv'].forEach((k) => {
     const show = keys.includes(k);
+
     $('row-' + k).hidden = !show;
-    if (!show) $('f-' + k).checked = false;
+
+    if (!show) {
+      $('f-' + k).checked = false;
+    }
   });
 }
 
-// Switch libraries: rebuild the floor list, keep date/time/accessory filters
+// Switch libraries while keeping the existing search filters.
 function setLibrary(lib) {
   state.library = lib;
   state.floor = floorsFor(lib)[0];
   state.selected = null;
+
   renderFloorSelect();
   renderFilters();
+
   applied = readFilters();
+
   render();
 }
 
+// Load rooms and set up the homepage.
 async function init() {
-  try { rooms = await getRooms(); }
-  catch { $('map').textContent = 'Could not load rooms. Is the server running?'; return; }
+  try {
+    rooms = await getRooms();
+  } catch {
+    $('map').textContent =
+      'Could not load rooms. Is the server running?';
+    return;
+  }
 
   const libraries = [...new Set(rooms.map((r) => r.library))]
-    .sort((a, b) => (norm(b) === norm(DEFAULT_LIBRARY)) - (norm(a) === norm(DEFAULT_LIBRARY)));
-  if (!libraries.length) { $('map').textContent = 'No rooms found.'; return; }
-  $('library').innerHTML = libraries.map((l) => `<option value="${l}">${l}</option>`).join('');
-  $('library').addEventListener('change', () => setLibrary($('library').value));
+    .sort((a, b) =>
+      (norm(b) === norm(DEFAULT_LIBRARY)) -
+      (norm(a) === norm(DEFAULT_LIBRARY))
+    );
+
+  if (!libraries.length) {
+    $('map').textContent = 'No rooms found.';
+    return;
+  }
+
+  $('library').innerHTML = libraries
+    .map((l) => `<option value="${l}">${l}</option>`)
+    .join('');
+
+  $('library').addEventListener('change', () => {
+    setLibrary($('library').value);
+  });
 
   $('date').value = today();
   $('time').innerHTML = hourOptions(8, 20, true);
   $('time').value = 13;
+
   $('search').addEventListener('click', () => {
     applied = readFilters();
     state.floor = applied.floor;
@@ -295,11 +448,17 @@ async function init() {
     render();
   });
 
-  const first = libraries.find((l) => norm(l) === norm(DEFAULT_LIBRARY)) || libraries[0];
+  const first =
+    libraries.find((l) => norm(l) === norm(DEFAULT_LIBRARY)) ||
+    libraries[0];
+
   $('library').value = first;
   setLibrary(first);
 }
+
 init().catch((e) => {
   console.error(e);
-  $('map').textContent = `Something went wrong loading the page: ${e.message}`;
+
+  $('map').textContent =
+    `Something went wrong loading the page: ${e.message}`;
 });
