@@ -247,9 +247,15 @@ function renderDetail() {
     <div>${applied.date} · ${fmtHour(applied.hour)}</div>
     <div class="status">Available</div>
     <button class="btn" id="select-room">Select room</button>`;
-  $('select-room').addEventListener('click', () => {
-    location.href = `reserve.html?room=${r.id}&date=${applied.date}&start=${applied.hour}`;
+ $('select-room').addEventListener('click', () => {
+  const params = new URLSearchParams({
+    room: r.id,
+    date: applied.date,
+    start: applied.hour
   });
+
+  location.href = `/reserve?${params.toString()}`;
+});
 }
 
 function render() { renderTabs(); renderMap(); renderDetail(); }
