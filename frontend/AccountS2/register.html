@@ -1,0 +1,388 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Create an Account | MyStudySpace</title>
+
+  <!-- Reuse the existing MyStudySpace styling. -->
+  <link rel="stylesheet" href="../css/base.css">
+
+  <style>
+    /* Center the registration form. */
+    .register-panel {
+      max-width: 520px;
+      margin: 50px auto;
+      padding: 30px;
+    }
+
+    .register-panel h1 {
+      margin: 0;
+    }
+
+    /* Display first and last name side by side. */
+    .name-fields {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    /* Match the existing account input styling. */
+    .register-panel input {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      font: inherit;
+    }
+
+    .register-panel label {
+      font-weight: 600;
+      color: var(--ink);
+    }
+
+    /* Keep login and guest options below registration. */
+    .account-links {
+      text-align: center;
+      margin-top: 20px;
+    }
+
+    .account-links a {
+      color: var(--primary);
+    }
+
+    /* Display registration errors and success messages. */
+    #message {
+      margin-top: 15px;
+      font-size: 0.9rem;
+    }
+
+    /* Stack name fields on smaller screens. */
+    @media (max-width: 480px) {
+      .name-fields {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <!-- Preserve the existing website navigation. -->
+  <header class="topbar">
+    <span class="logo">MyStudySpace</span>
+
+    <nav>
+      <a href="../index.html">Find a Room</a>
+      <a href="../my-reservations.html">My Reservations</a>
+    </nav>
+  </header>
+
+  <!-- Registration form for new MyStudySpace accounts. -->
+  <main class="panel register-panel">
+
+    <h1>Create an Account</h1>
+
+    <p>
+      Save your preferences and manage your study room reservations.
+    </p>
+
+    <!--
+      Browser autocomplete attributes support standard browsers
+      and password managers without storing credentials in JavaScript.
+    -->
+    <form id="register-form" autocomplete="on">
+
+      <!-- FIRST AND LAST NAME -->
+      <div class="name-fields">
+
+        <div>
+          <label for="first-name">First Name</label>
+
+          <input
+            type="text"
+            id="first-name"
+            name="given-name"
+            placeholder="Enter your first name"
+            autocomplete="given-name"
+            maxlength="50"
+            required
+          >
+        </div>
+
+        <div>
+          <label for="last-name">Last Name</label>
+
+          <input
+            type="text"
+            id="last-name"
+            name="family-name"
+            placeholder="Enter your last name"
+            autocomplete="family-name"
+            maxlength="50"
+            required
+          >
+        </div>
+
+      </div>
+
+      <!-- EMAIL ADDRESS -->
+      <!-- Email must be valid and unique in the users table. -->
+      <label for="email">Email Address</label>
+
+      <input
+        type="email"
+        id="email"
+        name="email"
+        placeholder="you@example.com"
+        autocomplete="username"
+        maxlength="255"
+        required
+      >
+
+      <!-- PASSWORD -->
+      <!-- Match the existing minimum password requirement. -->
+      <label for="password">Password</label>
+
+      <input
+        type="password"
+        id="password"
+        name="new-password"
+        placeholder="Create a password"
+        autocomplete="new-password"
+        minlength="8"
+        maxlength="72"
+        required
+      >
+
+      <!-- CONFIRM PASSWORD -->
+      <label for="confirm-password">Confirm Password</label>
+
+      <input
+        type="password"
+        id="confirm-password"
+        name="confirm-password"
+        placeholder="Confirm your password"
+        autocomplete="new-password"
+        minlength="8"
+        maxlength="72"
+        required
+      >
+
+      <button
+        class="btn"
+        id="register-button"
+        type="submit"
+      >
+        Create Account
+      </button>
+
+    </form>
+
+    <!-- Display registration errors and progress messages. -->
+    <p
+      id="message"
+      role="status"
+      aria-live="polite"
+    ></p>
+
+    <!-- Preserve the existing account navigation options. -->
+    <div class="account-links">
+
+      <p>
+        Already have an account?
+        <a href="login.html">Log In</a>
+      </p>
+
+      <p>
+        <a href="guest.html">Continue as Guest</a>
+      </p>
+
+    </div>
+  </main>
+
+  <script>
+    /*
+     * MyStudySpace - Account Registration
+     *
+     * SPRINT 2 REGISTRATION FLOW:
+     *
+     * 1. Collect first name, last name, email, and password.
+     * 2. Validate the entered information.
+     * 3. Send registration details to the existing backend API.
+     * 4. Save the new account in MySQL through the backend.
+     * 5. Redirect the user to Log In after successful registration.
+     *
+     * SECURITY:
+     *
+     * - Passwords are never saved in browser storage.
+     * - The backend hashes passwords before storing them.
+     * - The backend checks for duplicate email addresses.
+     * - Registration does not automatically log the user in.
+     * - Login authentication is handled separately.
+     */
+
+    // Reference the registration form and its controls.
+    const registerForm = document.getElementById('register-form');
+    const registerButton = document.getElementById('register-button');
+    const message = document.getElementById('message');
+
+    /*
+     * REGISTRATION SUBMISSION
+     *
+     * Prevent the default form submission so the existing
+     * registration API can validate and create the account.
+     */
+    registerForm.addEventListener('submit', async function (event) {
+      event.preventDefault();
+
+      // Read and normalize the entered information.
+      const firstName = document
+        .getElementById('first-name').value.trim();
+
+      const lastName = document
+        .getElementById('last-name').value.trim();
+
+      const email = document
+        .getElementById('email').value.trim().toLowerCase();
+
+      const password = document
+        .getElementById('password').value;
+
+      const confirmPassword = document
+        .getElementById('confirm-password').value;
+
+      // Clear previous validation messages.
+      message.textContent = '';
+      message.style.color = '';
+
+      /*
+       * VALIDATION 1: REQUIRED FIELDS
+       *
+       * HTML required attributes already prevent empty fields.
+       * JavaScript also rejects whitespace-only names.
+       */
+      if (!firstName || !lastName || !email || !password) {
+        message.textContent =
+          'Please complete all required fields.';
+
+        message.style.color = '#b42318';
+        return;
+      }
+
+      /*
+       * VALIDATION 2: NAME LENGTH
+       *
+       * Match the existing MySQL registration requirements.
+       */
+      if (firstName.length > 50 || lastName.length > 50) {
+        message.textContent =
+          'First and last names must be 50 characters or fewer.';
+
+        message.style.color = '#b42318';
+        return;
+      }
+
+      /*
+       * VALIDATION 3: PASSWORD LENGTH
+       *
+       * bcrypt processes a maximum of 72 UTF-8 bytes.
+       * Check bytes as well as characters.
+       */
+      const passwordBytes = new TextEncoder()
+        .encode(password).length;
+
+      if (password.length < 8 || passwordBytes > 72) {
+        message.textContent =
+          'Password must be at least 8 characters and no more than 72 bytes.';
+
+        message.style.color = '#b42318';
+        return;
+      }
+
+      /*
+       * VALIDATION 4: CONFIRM PASSWORD
+       *
+       * Both password fields must contain the same value.
+       */
+      if (password !== confirmPassword) {
+        message.textContent = 'Passwords do not match.';
+        message.style.color = '#b42318';
+        return;
+      }
+
+      // Prevent duplicate registration requests.
+      registerButton.disabled = true;
+      registerButton.textContent = 'Creating Account...';
+
+      message.textContent = 'Creating your account...';
+
+      try {
+        /*
+         * Send registration details to the existing API.
+         *
+         * The backend is responsible for:
+         * - Server-side validation
+         * - bcrypt password hashing
+         * - MySQL account creation
+         * - Duplicate email prevention
+         */
+        const response = await fetch('/api/accounts/register', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          credentials: 'same-origin',
+          body: JSON.stringify({
+            firstName,
+            lastName,
+            email,
+            password
+          })
+        });
+
+        const result = await response.json();
+
+        // Display the API's error if registration fails.
+        if (!response.ok) {
+          throw new Error(
+            result.error || 'Registration failed.'
+          );
+        }
+
+        /*
+         * REGISTRATION SUCCESS
+         *
+         * Account creation is complete, but the user
+         * must log in separately during Sprint 2.
+         */
+        message.textContent =
+          'Account created successfully! Redirecting to Log In...';
+
+        message.style.color = '#237a4b';
+
+        // Clear the form after successful registration.
+        registerForm.reset();
+
+        /*
+         * Redirect to the existing login page.
+         *
+         * The login page handles authentication and
+         * creates the registered account session.
+         */
+        window.location.replace('login.html');
+
+      } catch (error) {
+        // Keep the form available when registration fails.
+        message.textContent = error.message;
+        message.style.color = '#b42318';
+
+      } finally {
+        registerButton.disabled = false;
+        registerButton.textContent = 'Create Account';
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,6 +1,13 @@
+
 {
   "outputDirectory": "frontend",
   "cleanUrls": true,
+  "rewrites": [
+    {
+      "source": "/Accounts2/Guest/guest",
+      "destination": "/Accounts2/Guest/guest.html"
+    }
+  ],
   "crons": [
     {
       "path": "/api/cron/release-no-shows",
