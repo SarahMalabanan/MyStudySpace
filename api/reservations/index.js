@@ -1,6 +1,6 @@
-
 const jwt = require('jsonwebtoken');
 const pool = require('../../lib/db');
+const crypto = require("crypto");
 
 // MyStudySpace - Reservations API
 //
@@ -54,6 +54,27 @@ function validDate(value) {
   return checked.getUTCFullYear() === year &&
     checked.getUTCMonth() === month - 1 &&
     checked.getUTCDate() === day;
+}
+
+// Get the current date and hour in the library's timezone.
+function getLocalDateTime() {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/New_York',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    hourCycle: 'h23'
+  }).formatToParts(new Date());
+
+  const values = Object.fromEntries(
+    parts.map(({ type, value }) => [type, value])
+  );
+
+  return {
+    date: `${values.year}-${values.month}-${values.day}`,
+    hour: Number(values.hour)
+  };
 }
 
 // Convert the reservation date and hour into MySQL DATETIME format.
@@ -129,30 +150,35 @@ module.exports = async function handler(req, res) {
   if (req.method === 'GET') {
     try {
       const [rows] = await pool.query(
-        `
-        SELECT
-          r.reservation_id,
-          r.room_id,
-          rm.name AS room_name,
-          rm.room_code,
-          rm.library,
-          rm.floor,
-          DATE_FORMAT(r.start_time, '%Y-%m-%d %H:%i:%s')
-            AS start_time,
-          DATE_FORMAT(r.end_time, '%Y-%m-%d %H:%i:%s')
-            AS end_time,
-          r.status,
-          r.confirmation_code
-        FROM reservations r
-        INNER JOIN rooms rm
-          ON r.room_id = rm.room_id
-        WHERE r.user_id = ?
-        ORDER BY r.start_time DESC
-        `,
-        [userId]
-      );
+  `
+  SELECT
+    r.reservation_id,
+    r.room_id,
+    rm.name AS room_name,
+    rm.room_code,
+    rm.library,
+    rm.floor,
+    DATE_FORMAT(r.start_time, '%Y-%m-%d %H:%i:%s')
+      AS start_time,
+    DATE_FORMAT(r.end_time, '%Y-%m-%d %H:%i:%s')
+      AS end_time,
+    r.status,
+    r.confirmation_code,
+    ci.check_in_id
+  FROM reservations r
+  INNER JOIN rooms rm
+    ON r.room_id = rm.room_id
+  LEFT JOIN check_ins ci
+    ON r.reservation_id = ci.reservation_id
+  WHERE r.user_id = ?
+    AND r.status = 'confirmed'
+    AND r.end_time >= NOW()
+  ORDER BY r.start_time ASC
+  `,
+  [userId]
+);
 
-      return res.status(200).json(rows);
+return res.status(200).json(rows);
 
     } catch (error) {
       console.error('Reservation history error:', error);
@@ -180,7 +206,7 @@ module.exports = async function handler(req, res) {
     !Number.isInteger(start) ||
     !Number.isInteger(end) ||
     start < 8 ||
-    end > 21 ||
+    end > 23 ||
     end <= start ||
     end - start > 2
   ) {
@@ -191,9 +217,36 @@ module.exports = async function handler(req, res) {
     );
   }
 
-  const startTime = mysqlDateTime(date, start);
-  const endTime = mysqlDateTime(date, end);
-  const weekday = weekdayFor(date);
+  // Enforce the two-week advance booking policy.
+const now = getLocalDateTime();
+
+const todayDate = new Date(`${now.date}T00:00:00Z`);
+const reservationDate = new Date(`${date}T00:00:00Z`);
+
+const daysAhead = Math.round(
+  (reservationDate - todayDate) / 86400000
+);
+
+if (daysAhead < 0 || daysAhead > 14) {
+  return sendError(
+    res,
+    400,
+    'Reservations must be made within the next two weeks.'
+  );
+}
+
+// Prevent reservations for times that have already started.
+if (date === now.date && start <= now.hour) {
+  return sendError(
+    res,
+    400,
+    'You cannot reserve a time that has already started.'
+  );
+}
+
+const startTime = mysqlDateTime(date, start);
+const endTime = mysqlDateTime(date, end);
+const weekday = weekdayFor(date);
 
   let connection;
   let transactionStarted = false;
@@ -232,51 +285,35 @@ module.exports = async function handler(req, res) {
       );
     }
 
-    // Reject reservations whose starting time has passed.
-    // The database clock must use the library's local timezone.
-    const [clockRows] = await connection.query(
-      `
-      SELECT
-        NOW() AS current_time,
-        ? <= NOW() AS is_past
-      `,
-      [startTime]
-    );
-
-    if (Number(clockRows[0].is_past) === 1) {
-      return sendError(
-        res,
-        400,
-        'Please select a future reservation time.'
-      );
-    }
-
     // Retrieve the applicable library schedule.
     // An exact-date entry takes priority over a regular
     // weekly entry when both are present.
-    const [hoursRows] = await connection.query(
-      `
-      SELECT
-        open_time,
-        close_time,
-        is_closed,
-        effective_date
-      FROM library_hours
-      WHERE day_of_week = ?
-        AND (
-          effective_date IS NULL
-          OR effective_date = ?
-        )
-      ORDER BY
-        CASE
-          WHEN effective_date = ? THEN 0
-          ELSE 1
-        END,
-        hours_id DESC
-      LIMIT 1
-      `,
-      [weekday, date, date]
-    );
+    // Retrieve the schedule for the selected room's library.
+// Exact-date entries take priority over regular weekly entries.
+const [hoursRows] = await connection.query(
+  `
+  SELECT
+    open_time,
+    close_time,
+    is_closed,
+    effective_date
+  FROM library_hours
+  WHERE library = ?
+    AND day_of_week = ?
+    AND (
+      effective_date IS NULL
+      OR effective_date = ?
+    )
+  ORDER BY
+    CASE
+      WHEN effective_date = ? THEN 0
+      ELSE 1
+    END,
+    hours_id DESC
+  LIMIT 1
+  `,
+  [selectedRoom.library, weekday, date, date]
+);
 
     // Missing hours must not automatically allow a booking.
     if (!hoursRows.length) {
@@ -286,6 +323,7 @@ module.exports = async function handler(req, res) {
         'Library hours are unavailable for this date.'
       );
     }
+    
 
     const schedule = hoursRows[0];
 
@@ -295,10 +333,11 @@ module.exports = async function handler(req, res) {
         409,
         'The library is closed on this date.'
       );
-    }
+    } 
 
     const opening = timeInMinutes(schedule.open_time);
     const closing = timeInMinutes(schedule.close_time);
+
 
     // Confirm that the full reservation fits within open hours.
     if (
@@ -359,28 +398,41 @@ module.exports = async function handler(req, res) {
       );
     }
 
+    const confirmationCode = crypto
+    .randomBytes(6)
+    .toString("hex")
+    .toUpperCase();
+
     // Save the reservation using the verified account ID.
-    const [result] = await connection.query(
-      `
-      INSERT INTO reservations (
-        user_id,
-        room_id,
-        start_time,
-        end_time,
-        status
-      )
-      VALUES (?, ?, ?, ?, 'confirmed')
-      `,
-      [userId, selectedRoomId, startTime, endTime]
-    );
+    // Save the reservation using the verified account ID.
+const [result] = await connection.query(
+  `
+  INSERT INTO reservations (
+    user_id,
+    room_id,
+    start_time,
+    end_time,
+    status,
+    confirmation_code
+  )
+  VALUES (?, ?, ?, ?, 'confirmed', ?)
+  `,
+  [userId, selectedRoomId, startTime, endTime, confirmationCode]
+);
 
     await connection.commit();
     transactionStarted = false;
 
     return res.status(201).json({
-      message: 'Reservation confirmed.',
-      reservationId: result.insertId
-    });
+  success: true,
+  message: 'Reservation confirmed.',
+  reservation_id: result.insertId,
+  confirmation_code: confirmationCode,
+  start_time: startTime,
+  end_time: endTime,
+  room_id: selectedRoomId,
+  status: 'confirmed'
+});
 
   } catch (error) {
     console.error('Reservation creation error:', error);

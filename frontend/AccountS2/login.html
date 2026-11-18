@@ -221,7 +221,12 @@
          * or recognize them for future autofill.
          * The website cannot force a browser save prompt.
          */
-        window.location.href = '../index.html';
+        // Redirect users based on their account role.
+        if (result.role === 'staff') {
+          window.location.href = '../admin.html';
+        } else {
+          window.location.href = '../index.html';
+        }
 
       } catch (error) {
         // Show the error without leaving the login page.

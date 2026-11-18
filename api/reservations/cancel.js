@@ -8,8 +8,38 @@
  *
  * Endpoint: POST /api/reservations/cancel
  */
-
+const jwt = require('jsonwebtoken');
 const pool = require("../../lib/db");
+
+function getUserId(req) {
+  try {
+    const cookie = (req.headers.cookie || '')
+      .split(';')
+      .map(item => item.trim())
+      .find(item => item.startsWith('mystudyspace_session='));
+
+    if (!cookie || !process.env.SESSION_SECRET) {
+      return null;
+    }
+
+    const token = decodeURIComponent(
+      cookie.slice('mystudyspace_session='.length)
+    );
+
+    const session = jwt.verify(token, process.env.SESSION_SECRET, {
+      algorithms: ['HS256']
+    });
+
+    const userId = Number(session.userId);
+
+    return Number.isSafeInteger(userId) && userId > 0
+      ? userId
+      : null;
+
+  } catch {
+    return null;
+  }
+}
 
 function sendResponse(res, status, data) {
   return res.status(status).json(data);
@@ -28,7 +58,7 @@ module.exports = async function handler(req, res) {
   }
 
   // 2. Verify the logged-in user.
-  const userId = req.user?.user_id;
+  const userId = getUserId(req);
 
   if (!Number.isSafeInteger(userId) || userId <= 0) {
     return sendResponse(res, 401, {

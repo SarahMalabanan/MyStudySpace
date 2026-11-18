@@ -1,0 +1,439 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Staff Dashboard | MyStudySpace</title>
+
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/admin.css">
+
+  <script src="js/a11y.js"></script>
+  <script src="js/site.js"></script>
+</head>
+
+<body>
+
+  <!-- Top Header -->
+  <header class="topbar">
+    <span class="logo">MyStudySpace</span>
+    <div class="staff-label">Staff Portal</div>
+    <div class="avatar" title="Staff Account">KA</div>
+  </header>
+
+  <!-- Access Denied -->
+  <main class="admin-layout">
+
+    <section class="panel denied-panel" id="denied" hidden>
+      <h1>Staff access only</h1>
+      <p id="denied-text"></p>
+      <a class="btn inline" id="denied-login" href="accounts2/login.html" hidden>
+        Log in
+      </a>
+    </section>
+
+    <!-- Dashboard -->
+    <div id="admin" hidden>
+
+      <!-- Sidebar -->
+      <aside class="sidebar">
+
+        <div class="sidebar-heading">NAVIGATION</div>
+
+        <nav class="sidebar-nav tabs" role="tablist" aria-label="Staff navigation">
+
+          <button type="button" data-tab="overview"
+                  role="tab" aria-selected="true">
+            <span class="nav-icon">⌂</span>
+            Overview
+          </button>
+
+          <button type="button" data-tab="hours"
+                  role="tab" aria-selected="false">
+            <span class="nav-icon">◷</span>
+            Library Hours
+          </button>
+
+          <button type="button" data-tab="rooms"
+                  role="tab" aria-selected="false">
+            <span class="nav-icon">▦</span>
+            Room Management
+          </button>
+
+        </nav>
+
+        <div class="sidebar-heading other-heading">OTHER FEATURES</div>
+
+        <nav class="sidebar-nav tabs" aria-label="Additional staff features">
+
+          <button type="button" data-tab="reservations"
+                  role="tab" aria-selected="false">
+            <span class="nav-icon">▣</span>
+            Reservations
+          </button>
+
+          <button type="button" data-tab="staff"
+                  role="tab" aria-selected="false">
+            <span class="nav-icon">♙</span>
+            Staff Tools
+          </button>
+
+          <button type="button" data-tab="settings"
+                  role="tab" aria-selected="false">
+            <span class="nav-icon">⚙</span>
+            Settings
+          </button>
+
+        </nav>
+
+        <div class="sidebar-bottom">
+          <a href="index.html">← Return to student site</a>
+        </div>
+
+      </aside>
+
+      <!-- Main Dashboard Content -->
+      <main class="dashboard-content">
+
+        <div class="dashboard-top">
+          <div>
+            <p class="eyebrow">STAFF PORTAL</p>
+            <h1>Library Management</h1>
+          </div>
+
+          <div class="library-selector">
+            <label for="lib">Library</label>
+            <select id="lib"></select>
+          </div>
+        </div>
+
+        <p class="msg" id="admin-msg" role="status" aria-live="polite"></p>
+
+        <!-- OVERVIEW -->
+        <section class="dashboard-section" id="tab-overview">
+
+          <div class="page-heading">
+            <h2>Dashboard Overview</h2>
+            <p>Welcome to the MyStudySpace staff portal.</p>
+          </div>
+
+          <div class="stats-grid">
+
+            <div class="stat-card">
+              <div class="stat-icon">▣</div>
+              <div>
+                <p>Libraries</p>
+                <h3>2</h3>
+              </div>
+            </div>
+
+            <div class="stat-card">
+              <div class="stat-icon">▦</div>
+              <div>
+                <p>Total Rooms</p>
+                <h3 id="total-rooms">--</h3>
+              </div>
+            </div>
+
+          </div>
+
+          <div class="section-heading">
+            <h2>Quick Actions</h2>
+            <p>Manage important library information.</p>
+          </div>
+
+          <div class="quick-actions">
+
+            <button type="button" class="action-card"
+                    onclick="showTab('hours')">
+              <span class="action-icon">◷</span>
+              <span class="action-content">
+                <strong>Edit Library Hours</strong>
+                <small>Update weekly schedules and special-day hours.</small>
+              </span>
+              <span class="action-arrow">→</span>
+            </button>
+
+            <button type="button" class="action-card"
+                    onclick="showTab('rooms')">
+              <span class="action-icon">▦</span>
+              <span class="action-content">
+                <strong>Manage Rooms</strong>
+                <small>Edit room details, accessories, and availability.</small>
+              </span>
+              <span class="action-arrow">→</span>
+            </button>
+
+          </div>
+
+        </section>
+
+        <!-- LIBRARY HOURS -->
+        <section class="dashboard-section" id="tab-hours" hidden>
+
+          <div class="page-heading">
+            <h2>Library Hours</h2>
+            <p>Manage regular opening hours and special-day schedules.</p>
+          </div>
+
+          <div class="content-card">
+            <h3>Usual Weekly Schedule</h3>
+            <p class="note">
+              Students can only reserve rooms during the library's operating
+              hours. "Closes" is the latest a reservation can end.
+            </p>
+
+            <div class="table-wrap">
+              <table class="data">
+                <thead>
+                  <tr>
+                    <th>Day</th>
+                    <th></th>
+                    <th>Opens</th>
+                    <th>Closes</th>
+                  </tr>
+                </thead>
+                <tbody id="weekly-body"></tbody>
+              </table>
+            </div>
+
+            <button type="button" class="btn inline" id="save-weekly">
+              Save Weekly Schedule
+            </button>
+          </div>
+
+          <div class="content-card">
+            <h3>Special Days</h3>
+            <p class="note">
+              Set different hours for holidays, exam periods, or other
+              dates that differ from the usual schedule.
+            </p>
+
+            <div class="special-day-form">
+              <div>
+                <label for="sd-date">Date</label>
+                <input type="date" id="sd-date">
+              </div>
+
+              <div>
+                <label for="sd-open">Opens</label>
+                <select id="sd-open"></select>
+              </div>
+
+              <div>
+                <label for="sd-close">Closes</label>
+                <select id="sd-close"></select>
+              </div>
+
+              <div>
+                <label for="sd-note">Note (optional)</label>
+                <input type="text" id="sd-note" maxlength="60"
+                       placeholder="Holiday, finals week...">
+              </div>
+            </div>
+
+            <label class="check">
+              <input type="checkbox" id="sd-closed">
+              Closed all day
+            </label>
+
+            <button type="button" class="btn inline" id="sd-add">
+              Add or Update Special Day
+            </button>
+
+            <div class="table-wrap special-table">
+              <table class="data">
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Hours</th>
+                    <th>Note</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody id="special-body"></tbody>
+              </table>
+            </div>
+          </div>
+
+        </section>
+
+        <!-- ROOM MANAGEMENT -->
+        <section class="dashboard-section" id="tab-rooms" hidden>
+
+          <div class="page-heading">
+            <h2>Room Management</h2>
+            <p>View and manage study rooms across the university libraries.</p>
+          </div>
+
+          <div class="content-card">
+            <h3>Study Rooms</h3>
+            <p class="note">
+              Edit room details, accessories, and pictures, or mark a room
+              unavailable so students cannot book it. Existing reservations
+              are not cancelled.
+            </p>
+
+            <div class="table-wrap">
+              <table class="data">
+                <thead>
+                  <tr>
+                    <th>Code</th>
+                    <th>Name</th>
+                    <th>Floor</th>
+                    <th>Seats</th>
+                    <th>Accessories</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="rooms-body"></tbody>
+              </table>
+            </div>
+          </div>
+
+        </section>
+
+        <!-- RESERVATIONS PLACEHOLDER -->
+        <section class="dashboard-section" id="tab-reservations" hidden>
+
+          <div class="page-heading">
+            <h2>Reservations</h2>
+            <p>View and manage student study-room reservations.</p>
+          </div>
+
+          <div class="placeholder-card">
+            <div class="placeholder-icon">▣</div>
+            <h3>Reservation Management</h3>
+            <p>
+              This section will allow staff to view upcoming reservations,
+              search reservation records, and assist students with
+              reservation issues.
+            </p>
+            <span class="coming-soon">Coming Soon</span>
+          </div>
+
+        </section>
+
+        <!-- STAFF TOOLS PLACEHOLDER -->
+        <section class="dashboard-section" id="tab-staff" hidden>
+
+          <div class="page-heading">
+            <h2>Staff Tools</h2>
+            <p>Manage staff access and administrative tools.</p>
+          </div>
+
+          <div class="placeholder-card">
+            <div class="placeholder-icon">♙</div>
+            <h3>Staff Management</h3>
+            <p>
+              This section will provide tools for managing staff accounts,
+              permissions, and other administrative responsibilities.
+            </p>
+            <span class="coming-soon">Coming Soon</span>
+          </div>
+
+        </section>
+
+        <!-- SETTINGS PLACEHOLDER -->
+        <section class="dashboard-section" id="tab-settings" hidden>
+          <div class="page-heading">
+            <h2>Settings</h2>
+            <p>Manage your staff account and dashboard preferences.</p>
+          </div>
+
+          <div class="placeholder-card">
+            <div class="placeholder-icon">⚙</div>
+            <h3>Account Settings</h3>
+            <p>
+              This section will provide staff account information,
+              password management, and dashboard preferences.
+            </p>
+            <span class="coming-soon">Coming Soon</span>
+
+            <button
+              type="button"
+              class="btn"
+              id="admin-logout"
+              style="width: auto;"
+            >
+                Log Out
+            </button>
+          </div>
+
+        </section>
+
+      </main>
+    </div>
+  </main>
+
+  <!-- EXISTING ROOM EDIT DIALOG -->
+  <dialog id="room-dialog" aria-labelledby="e-title">
+    <form id="room-form" method="dialog" novalidate>
+
+      <h2 id="e-title">Edit Room</h2>
+
+      <div class="row">
+        <div>
+          <label for="e-name">Name</label>
+          <input type="text" id="e-name" maxlength="100">
+        </div>
+
+        <div>
+          <label for="e-seats">Seats</label>
+          <input type="number" id="e-seats" min="1" max="30">
+        </div>
+      </div>
+
+      <fieldset>
+        <legend>Accessories</legend>
+        <div class="choices">
+          <label class="check">
+            <input type="checkbox" id="e-whiteboard"> Whiteboard
+          </label>
+          <label class="check">
+            <input type="checkbox" id="e-tv"> TV
+          </label>
+          <label class="check">
+            <input type="checkbox" id="e-window"> Window
+          </label>
+          <label class="check">
+            <input type="checkbox" id="e-outlet"> Outlet
+          </label>
+        </div>
+      </fieldset>
+
+      <label for="e-status">Availability</label>
+      <select id="e-status">
+        <option value="active">Available for booking</option>
+        <option value="inactive">Unavailable (hidden from students)</option>
+      </select>
+
+      <label for="e-photo">Room Picture</label>
+      <div id="e-preview"></div>
+      <input type="file" id="e-photo"
+             accept="image/jpeg,image/png,image/webp">
+
+      <button type="button" class="btn secondary inline"
+              id="e-remove-photo">
+        Remove Uploaded Picture
+      </button>
+
+      <p class="msg" id="e-msg" role="alert"></p>
+
+      <div class="actions">
+        <button type="button" class="btn inline" id="e-save">Save</button>
+        <button type="button" class="btn secondary inline"
+                id="e-cancel">Cancel</button>
+      </div>
+
+    </form>
+  </dialog>
+
+  <script src="js/utils.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/admin.js"></script>
+
+</body>
+</html>

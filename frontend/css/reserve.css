@@ -162,3 +162,8 @@
 .confirmation-box .btn {
     width: 100%;
 }
+
+#guest-fields[hidden],
+#account-info[hidden] {
+  display: none !important;
+}

@@ -68,6 +68,10 @@
     <nav>
       <a href="index.html" class="active">Find a Room</a>
       <a href="my-reservations.html">My Reservations</a>
+
+      <a href="admin.html" id="admin-dashboard-link" hidden>
+        Admin Dashboard
+      </a>
     </nav>
 
     <!-- Allows users to switch between library locations -->
@@ -197,6 +201,16 @@
 
         const user = await response.json();
         const accountLink = document.getElementById('account-link');
+        // Only staff accounts can access the Admin Dashboard link.
+        if (user.role === 'staff') {
+          accountLink.textContent = 'Admin Dashboard';
+          accountLink.href = 'admin.html';
+        // Hide My Reservations for staff.
+          document.getElementById('reservations-link').hidden = true;
+        } else {
+          accountLink.textContent = 'Account Settings';
+          accountLink.href = 'AccountS2/settings.html';
+        }
 
         // Show Account Settings instead of Guest Access.
         accountLink.textContent = 'Account Settings';

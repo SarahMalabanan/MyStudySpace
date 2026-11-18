@@ -188,7 +188,8 @@ module.exports = async (req, res) => {
      */
     return res.status(200).json({
       message: 'Login successful',
-      firstName: user.first_name
+      firstName: user.first_name,
+      role: user.role
     });
 
   } catch (error) {

@@ -9,6 +9,10 @@ let availabilityCheckId = 0;
 let submitting = false;
 let reservationConfirmed = false;
 
+// Logged-in account information.
+// If currentUser is null, the visitor is a guest.
+let currentUser = null;
+
 // Display reservation messages.
 function showMessage(message, isError = false) {
   $('msg').textContent = message;
@@ -49,6 +53,40 @@ function reservationIsPast(date, startHour) {
   );
 
   return start <= new Date();
+}
+
+// Check whether the visitor is logged in.
+async function loadCurrentUser() {
+  try {
+    const response = await fetch('/api/accounts/recognizeduser', {
+      method: 'GET',
+      credentials: 'same-origin'
+    });
+
+    // A 401 response means the visitor is a guest.
+    if (!response.ok) {
+      currentUser = null;
+      return;
+    }
+
+    currentUser = await response.json();
+
+    // Show the logged-in user's information.
+    $('guest-fields').hidden = true;
+    $('account-info').hidden = false;
+
+    $('account-name').textContent =
+      `${currentUser.first_name} ${currentUser.last_name}`;
+
+    $('account-email').textContent = currentUser.email;
+
+  } catch (error) {
+    console.error('Could not check login status:', error);
+
+    // If the account check fails, do not assume the visitor
+    // is authenticated. Keep the guest workflow available.
+    currentUser = null;
+  }
 }
 
 // MOCKTEST: Display the room selected from the homepage.
@@ -180,8 +218,9 @@ function showConfirmation(reservation) {
   $('c-code').textContent =
     reservation.confirmation_code || 'Not provided';
 
-  $('c-name').textContent =
-    reservation.guest_name || $('guest-name').value.trim();
+  $('c-name').textContent = currentUser
+    ? `${currentUser.first_name} ${currentUser.last_name}`
+    : reservation.guest_name || $('guest-name').value.trim();
 
   $('c-room').textContent = room.name || room.room_code;
 
@@ -203,15 +242,22 @@ function showConfirmation(reservation) {
       }`;
   }
 
-  $('c-email').textContent =
-    reservation.guest_email ||
-    $('guest-email').value.trim() ||
-    'Not provided';
+  // Account reservations display the account email.
+  // Guest reservations display the submitted contact information.
+  $('c-email').textContent = currentUser
+    ? currentUser.email
+    : reservation.guest_email ||
+      $('guest-email').value.trim() ||
+      'Not provided';
 
-  $('c-phone').textContent =
-    reservation.guest_phone ||
-    $('guest-phone').value.trim() ||
-    'Not provided';
+  $('c-phone').textContent = currentUser
+    ? 'Not provided'
+    : reservation.guest_phone ||
+      $('guest-phone').value.trim() ||
+      'Not provided';
+
+  $('confirmation-email-row').hidden = false;
+  $('confirmation-phone-row').hidden = false;
 
   $('confirmation-modal').hidden = false;
 }
@@ -221,29 +267,39 @@ function showConfirmation(reservation) {
 async function confirmReservation() {
   if (!room || submitting || reservationConfirmed) return;
 
-  // The button is enabled only after availability is verified.
   if ($('confirm').disabled) return;
 
   const start = Number($('start').value);
   const end = Number($('end').value);
   const date = $('date').value;
 
-  const guestName = $('guest-name').value.trim();
-  const guestEmail = $('guest-email').value.trim();
-  const guestPhone = $('guest-phone').value.trim();
+  // Only collect guest information if the visitor is not logged in.
+  const guestName = currentUser
+    ? ''
+    : $('guest-name').value.trim();
 
-  // Keep mocktest's guest information validation.
-  if (!guestName) {
-    showMessage('Please enter your full name.', true);
-    return;
-  }
+  const guestEmail = currentUser
+    ? ''
+    : $('guest-email').value.trim();
 
-  if (!guestEmail && !guestPhone) {
-    showMessage(
-      'Please enter an email address or phone number.',
-      true
-    );
-    return;
+  const guestPhone = currentUser
+    ? ''
+    : $('guest-phone').value.trim();
+
+  // Validate guest information only for guest reservations.
+  if (!currentUser) {
+    if (!guestName) {
+      showMessage('Please enter your full name.', true);
+      return;
+    }
+
+    if (!guestEmail && !guestPhone) {
+      showMessage(
+        'Please enter an email address or phone number.',
+        true
+      );
+      return;
+    }
   }
 
   submitting = true;
@@ -253,18 +309,55 @@ async function confirmReservation() {
   showMessage('Saving your reservation...');
 
   try {
-    // Preserve mocktest's existing API function and parameters.
-    const reservation = await createReservation(
-      room.id,
-      date,
-      start,
-      end,
-      guestName,
-      guestEmail,
-      guestPhone
-    );
+    let reservation;
 
-    // Only mark confirmed after the API succeeds.
+    if (currentUser) {
+      // ACCOUNT RESERVATION
+      // The backend gets the user ID from the verified session cookie.
+      const response = await fetch('/api/reservations', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        credentials: 'same-origin',
+        body: JSON.stringify({
+          roomId: room.id,
+          date: date,
+          startHour: start,
+          endHour: end
+        })
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+  throw new Error(
+    result.message || result.error || 'Could not save your reservation.'
+  );
+}
+
+      reservation = {
+        ...result,
+        guest_name:
+          `${currentUser.first_name} ${currentUser.last_name}`,
+        guest_email: currentUser.email,
+        guest_phone: ''
+      };
+
+    } else {
+      // GUEST RESERVATION
+      // Keep using the existing createReservation() function.
+      reservation = await createReservation(
+        room.id,
+        date,
+        start,
+        end,
+        guestName,
+        guestEmail,
+        guestPhone
+      );
+    }
+
     reservationConfirmed = true;
 
     showMessage('Reservation successfully saved!');
@@ -272,7 +365,7 @@ async function confirmReservation() {
     $('confirm').textContent = 'Reservation Confirmed';
     $('confirm').disabled = true;
 
-    // Prevent editing a reservation that was already submitted.
+    // Prevent editing after a successful reservation.
     $('date').disabled = true;
     $('start').disabled = true;
     $('end').disabled = true;
@@ -314,7 +407,11 @@ async function init() {
   }
 
   try {
-    const params = new URLSearchParams(location.search);
+  // Determine whether the visitor is logged in before
+  // displaying the reservation form.
+  await loadCurrentUser();
+
+  const params = new URLSearchParams(location.search);
     const roomId = params.get('room');
 
     if (!roomId) {
