@@ -4,7 +4,26 @@ function fmtHour(h) {
 }
 const FLOOR_NAMES = { 0: 'Ground Floor', 1: 'First Floor', 2: 'Second Floor', 3: 'Third Floor', 4: 'Fourth Floor', 5: 'Fifth Floor' };
 function floorName(n) { return FLOOR_NAMES[n] || `Floor ${n}`; }
-function today() { return new Date().toISOString().slice(0, 10); }
+function today() {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+
+  return `${year}-${month}-${day}`;
+}
+
+function maxBookingDate() {
+  const max = new Date();
+  max.setDate(max.getDate() + 14);
+
+  const year = max.getFullYear();
+  const month = String(max.getMonth() + 1).padStart(2, '0');
+  const day = String(max.getDate()).padStart(2, '0');
+
+  return `${year}-${month}-${day}`;
+}
+
 function hourOptions(from, to, withRange) {
   let html = '';
   for (let h = from; h <= to; h++) {

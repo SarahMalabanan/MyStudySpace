@@ -1,40 +1,164 @@
-.times { 
-    display: grid; 
-    grid-template-columns: repeat(3, 1fr); 
-    gap: .75rem; 
+
+/* Date and time selection */
+.times {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: .75rem;
 }
 
-.rules { 
-    margin-top: 1rem; 
-    padding: 1rem 1rem 1rem 2rem; 
-    border: 1px solid var(--line); 
-    border-radius: 8px; 
-    background: #fafbfc; 
-    font-size: .92rem; 
+/* Guest information */
+.guest-fields {
+    display: flex;
+    flex-direction: column;
+    gap: .85rem;
+    margin-top: .75rem;
 }
-.rules h3 { 
-    margin: 0 0 .5rem -1rem; 
-    font-size: 1rem; 
+
+.guest-fields > div {
+    display: flex;
+    flex-direction: column;
+    gap: .35rem;
 }
-.summary dl { 
-    margin: 0; 
+
+.guest-fields label,
+.times label {
+    font-size: .9rem;
+    font-weight: 600;
 }
-.summary dt { 
-    color: var(--muted); 
-    font-size: .85rem; 
-    margin-top: .6rem; 
+
+.guest-fields input {
+    width: 100%;
+    padding: .7rem .75rem;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    font: inherit;
+    font-size: .95rem;
+    box-sizing: border-box;
+    background: #fff;
 }
-.summary dd { 
-    margin: 0; 
-    font-weight: 600; 
+
+.guest-fields input:focus {
+    outline: none;
+    border-color: #4779b8;
+    box-shadow: 0 0 0 2px rgba(71, 121, 184, .15);
 }
-.msg { 
-    margin-top: .75rem; 
-    font-size: .9rem; 
+
+/* Reservation rules */
+.rules {
+    margin-top: 1.25rem;
+    padding: 1rem 1rem 1rem 2rem;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: #fafbfc;
+    font-size: .92rem;
 }
-.msg.error { 
-    color: #b42318; 
+
+.rules h3 {
+    margin: 0 0 .5rem -1rem;
+    font-size: 1rem;
 }
-.msg.ok { 
-    color: #2f7d5b; 
+
+/* Reservation summary */
+.summary dl {
+    margin: 0;
+}
+
+.summary dt {
+    color: var(--muted);
+    font-size: .85rem;
+    margin-top: .6rem;
+}
+
+.summary dd {
+    margin: 0;
+    font-weight: 600;
+}
+
+.msg {
+    margin-top: .75rem;
+    font-size: .9rem;
+}
+
+.msg.error {
+    color: #b42318;
+}
+
+.msg.ok {
+    color: #2f7d5b;
+}
+
+/* Smaller screens */
+@media (max-width: 600px) {
+    .times {
+        grid-template-columns: 1fr;
+    }
+}
+
+
+/* Reservation confirmation popup */
+.confirmation-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 1rem;
+    background: rgba(0, 0, 0, 0.55);
+}
+
+.confirmation-modal[hidden] {
+    display: none;
+}
+
+.confirmation-box {
+    width: 100%;
+    max-width: 430px;
+    padding: 2rem;
+    border-radius: 12px;
+    background: #fff;
+    text-align: center;
+    box-shadow: 0 10px 35px rgba(0, 0, 0, 0.2);
+}
+
+.confirmation-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 55px;
+    height: 55px;
+    margin: 0 auto 1rem;
+    border-radius: 50%;
+    background: #e6f4ec;
+    color: #2f7d5b;
+    font-size: 2rem;
+    font-weight: bold;
+}
+
+.confirmation-box h2 {
+    margin: 0 0 .5rem;
+}
+
+.confirmation-box > p {
+    color: var(--muted);
+    margin-bottom: 1.5rem;
+}
+
+.confirmation-details {
+    padding: 1rem;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: #fafbfc;
+    text-align: left;
+    margin-bottom: 1.5rem;
+    overflow-wrap: anywhere;
+}
+
+.confirmation-details p {
+    margin: .55rem 0;
+    font-size: .9rem;
+}
+
+.confirmation-box .btn {
+    width: 100%;
 }
