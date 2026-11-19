@@ -2,19 +2,6 @@
 
 MyStudySpace is a study room reservation system developed for Kean University. The system is designed to make finding and reserving study rooms easier by allowing users to browse room availability, explore room locations through an interactive library map, and manage their reservations.
 
-## Accessing the System
-
-**Important:** Access to the Kean University VPN is currently required to access the deployed application.
-
-To try the system:
-
-1. Connect to the Kean University VPN using your Kean credentials.
-2. Open the deployed application using the link below.
-
-**Deployed Application:** [INSERT VERCEL DEPLOYMENT URL]
-
-If you are unable to access the application, make sure you are connected to the Kean VPN before trying again.
-
 ## Features
 
 MyStudySpace is being developed with features for both students and library staff.
@@ -94,14 +81,12 @@ Create a `.env.local` file in the root directory.
 Add the environment variables required by the project. These may include:
 
 ```env
-DB_HOST=your_database_host
-DB_USER=your_database_username
-DB_PASSWORD=your_database_password
-DB_NAME=your_database_name
-SESSION_SECRET=your_session_secret
+DB_HOST=
+DB_USER=
+DB_PASSWORD=
+DB_NAME=
+SESSION_SECRET=
 ```
-
-Replace the example values with the appropriate credentials and configuration.
 
 **Important:** Environment variables and database credentials should be obtained from the project administrators. Never commit `.env.local` or other files containing private credentials to GitHub.
 
