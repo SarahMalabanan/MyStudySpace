@@ -29,8 +29,39 @@
  * Uses the shared MySQL connection from lib/db.js.
  */
 
+const jwt = require('jsonwebtoken');
 const pool = require("../../lib/db");
 const { validateCheckIn } = require("../../lib/checkInRules");
+
+function getUserId(req) {
+  try {
+    const cookie = (req.headers.cookie || '')
+      .split(';')
+      .map(item => item.trim())
+      .find(item => item.startsWith('mystudyspace_session='));
+
+    if (!cookie || !process.env.SESSION_SECRET) {
+      return null;
+    }
+
+    const token = decodeURIComponent(
+      cookie.slice('mystudyspace_session='.length)
+    );
+
+    const session = jwt.verify(token, process.env.SESSION_SECRET, {
+      algorithms: ['HS256']
+    });
+
+    const userId = Number(session.userId);
+
+    return Number.isSafeInteger(userId) && userId > 0
+      ? userId
+      : null;
+
+  } catch {
+    return null;
+  }
+}
 
 /**
  * Sends a standardized JSON response.
@@ -53,13 +84,7 @@ function sendResponse(res, status, data) {
  * @returns {number|null} Authenticated user ID.
  */
 function getAuthenticatedUserId(req) {
-  const userId = req.user?.user_id;
-
-  if (!Number.isSafeInteger(userId) || userId <= 0) {
-    return null;
-  }
-
-  return userId;
+  return getUserId(req);
 }
 
 /**

@@ -1,56 +1,333 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Find a Room | MyStudySpace</title>
+
+  <!-- Styling for the website and study room maps -->
   <link rel="stylesheet" href="css/base.css">
   <link rel="stylesheet" href="css/rooms.css">
+
+  <style>
+    /* Keep the preference link beside the search heading. */
+    .filter-heading {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .filter-heading h2 {
+      margin: 0;
+    }
+
+    /* Make Apply Preferences subtle instead of another large button. */
+    .apply-preferences {
+      width: auto;
+      padding: 4px 0;
+      border: none;
+      background: transparent;
+      color: var(--primary);
+      font: inherit;
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .apply-preferences:hover {
+      text-decoration: underline;
+    }
+
+    .apply-preferences[hidden],
+    #preference-status[hidden] {
+      display: none;
+    }
+
+    .apply-preferences:focus-visible {
+      outline: 2px solid var(--primary);
+      outline-offset: 3px;
+    }
+
+    #preference-status {
+      margin: 8px 0;
+      font-size: 0.85rem;
+      color: var(--muted);
+    }
+  </style>
 </head>
+
 <body>
+  <!-- Main navigation bar -->
   <header class="topbar">
     <span class="logo">MyStudySpace</span>
+
     <nav>
       <a href="index.html" class="active">Find a Room</a>
       <a href="my-reservations.html">My Reservations</a>
+
+      <a href="admin.html" id="admin-dashboard-link" hidden>
+        Admin Dashboard
+      </a>
     </nav>
+
+    <!-- Allows users to switch between library locations -->
     <select class="location" id="library" aria-label="Library location"></select>
 
+    <!-- Opens guest access or account settings based on login status -->
+    <a href="AccountS2/guest.html" class="btn" id="account-link"
+       style="width:auto; margin:0; padding:8px 18px; text-decoration:none;">
+      Guest Access
+    </a>
+
+    <!-- Displays the logged-in user's initials -->
     <div class="avatar" title="Account">NT</div>
   </header>
 
+  <!-- Main study room search layout -->
   <main class="layout three">
+
+    <!-- Users can filter rooms based on their preferences -->
     <aside class="panel">
-      <h2>Search filters</h2>
+
+      <!-- Apply Preferences only appears for accounts with saved filters. -->
+      <div class="filter-heading">
+        <h2>Search filters</h2>
+
+        <button
+          type="button"
+          id="apply-preferences"
+          class="apply-preferences"
+          hidden>
+          Apply Preferences
+        </button>
+      </div>
+
+      <p id="preference-status" role="status" aria-live="polite" hidden></p>
+
       <label for="date">Date</label>
       <input type="date" id="date">
+
       <label for="time">Time</label>
       <select id="time"></select>
+
       <label for="floor">Floor</label>
       <select id="floor">
         <option value="2">Second Floor</option>
         <option value="3">Third Floor</option>
       </select>
+
+      <!-- Available room accessories -->
       <label>Accessories</label>
-      <label class="check" id="row-whiteboard"><input type="checkbox" id="f-whiteboard"> Whiteboard</label>
-      <label class="check" id="row-tv"><input type="checkbox" id="f-tv"> TV</label>
-      <label class="check"><input type="checkbox" id="f-window"> Window</label>
-      <label class="check"><input type="checkbox" id="f-outlet"> Outlet</label>
+
+      <label class="check" id="row-whiteboard">
+        <input type="checkbox" id="f-whiteboard"> Whiteboard
+      </label>
+
+      <label class="check" id="row-tv">
+        <input type="checkbox" id="f-tv"> TV
+      </label>
+
+      <label class="check">
+        <input type="checkbox" id="f-window"> Window
+      </label>
+
+      <label class="check">
+        <input type="checkbox" id="f-outlet"> Outlet
+      </label>
+
       <button class="btn" id="search">Search rooms</button>
     </aside>
 
+    <!-- Displays the floor maps and available study rooms -->
     <section class="panel">
       <div class="tabs" id="tabs"></div>
       <div class="map" id="map"></div>
-      <div class="legend"><span>Available</span><span class="u">Unavailable</span><span class="s">Selected</span></div>
+
+      <!-- Shows what each room availability color means -->
+      <div class="legend">
+        <span>Available</span>
+        <span class="u">Unavailable</span>
+        <span class="s">Selected</span>
+      </div>
     </section>
 
+    <!-- Shows more information when a room is selected -->
     <aside class="panel" id="detail"></aside>
   </main>
 
+  <!-- Keep the existing room search scripts in their original order. -->
   <script src="js/floorplans.js"></script>
   <script src="js/utils.js"></script>
   <script src="js/api.js"></script>
   <script src="js/rooms.js"></script>
+
+  <script>
+    // I keep the saved filters for the account currently logged in.
+    let savedPreferences = null;
+
+    // Read the preference cookie created on the Account Settings page.
+    function getSavedPreferences(userId) {
+      const cookieName = `mystudyspace_preferences_${userId}=`;
+
+      const cookie = document.cookie.split('; ')
+        .find(item => item.startsWith(cookieName));
+
+      if (!cookie) return null;
+
+      try {
+        return JSON.parse(
+          decodeURIComponent(cookie.slice(cookieName.length))
+        );
+      } catch (error) {
+        console.error('Could not read saved preferences:', error);
+        return null;
+      }
+    }
+
+    // Check whether the visitor is logged into MyStudySpace.
+    async function checkAccount() {
+      try {
+        const response = await fetch('/api/accounts/recognizeduser', {
+          credentials: 'same-origin',
+          cache: 'no-store'
+        });
+
+        // Keep Guest Access visible if no valid session exists.
+        if (!response.ok) return;
+
+        const user = await response.json();
+        const accountLink = document.getElementById('account-link');
+        // Only staff accounts can access the Admin Dashboard link.
+        if (user.role === 'staff') {
+          accountLink.textContent = 'Admin Dashboard';
+          accountLink.href = 'admin.html';
+        // Hide My Reservations for staff.
+          document.getElementById('reservations-link').hidden = true;
+        } else {
+          accountLink.textContent = 'Account Settings';
+          accountLink.href = 'AccountS2/settings.html';
+        }
+
+        // Show Account Settings instead of Guest Access.
+        accountLink.textContent = 'Account Settings';
+        accountLink.href = 'AccountS2/settings.html';
+
+        // Replace NT with the user's initials.
+        const initials =
+          (user.first_name?.[0] || '') +
+          (user.last_name?.[0] || '');
+
+        if (initials) {
+          document.querySelector('.avatar').textContent =
+            initials.toUpperCase();
+        }
+
+        // Only show Apply Preferences when this account has saved filters.
+        savedPreferences = getSavedPreferences(user.user_id);
+
+        if (savedPreferences) {
+          document.getElementById('apply-preferences').hidden = false;
+        }
+
+      } catch (error) {
+        // Keep guest navigation if the session cannot be checked.
+        console.error('Could not check account session:', error);
+      }
+    }
+
+    // Find the matching time in the homepage dropdown.
+    function findPreferredTime(select, savedTime) {
+      const hour = Number(savedTime);
+
+      return [...select.options].find(option => {
+        const value = option.value.trim();
+        const label = option.textContent.trim();
+
+        if (value === String(savedTime)) return true;
+
+        // Match labels such as 1:00PM - 2:00PM.
+        const match = label.match(
+          /^(\d{1,2}):00\s*(AM|PM)/i
+        );
+
+        if (!match) return false;
+
+        let optionHour = Number(match[1]) % 12;
+
+        if (match[2].toUpperCase() === 'PM') {
+          optionHour += 12;
+        }
+
+        return optionHour === hour;
+      });
+    }
+
+    // Fill in the homepage filters using the saved account preferences.
+    function applyPreferences() {
+      if (!savedPreferences) return;
+
+      // Apply the preferred floor.
+      const floorSelect = document.getElementById('floor');
+
+      if (savedPreferences.floor) {
+        floorSelect.value = savedPreferences.floor;
+
+        // Notify the existing room code that the floor changed.
+        floorSelect.dispatchEvent(
+          new Event('change', { bubbles: true })
+        );
+      }
+
+      // Apply the preferred time if the homepage has a matching option.
+      const timeSelect = document.getElementById('time');
+
+      if (savedPreferences.time) {
+        const matchingOption = findPreferredTime(
+          timeSelect,
+          savedPreferences.time
+        );
+
+        if (matchingOption) {
+          timeSelect.value = matchingOption.value;
+
+          timeSelect.dispatchEvent(
+            new Event('change', { bubbles: true })
+          );
+        }
+      }
+
+      // Apply the saved accessory choices.
+      const accessories = savedPreferences.accessories || {};
+
+      ['whiteboard', 'tv', 'window', 'outlet'].forEach(item => {
+        const checkbox = document.getElementById('f-' + item);
+
+        if (checkbox) {
+          checkbox.checked = Boolean(accessories[item]);
+
+          checkbox.dispatchEvent(
+            new Event('change', { bubbles: true })
+          );
+        }
+      });
+
+      // Users can review their filters before searching.
+      const status = document.getElementById('preference-status');
+
+      status.textContent = 'Saved preferences applied.';
+      status.hidden = false;
+    }
+
+    // Apply Preferences only runs when the user clicks the link.
+    document.getElementById('apply-preferences')
+      .addEventListener('click', applyPreferences);
+
+    // Check the account after the existing homepage scripts load.
+    checkAccount();
+  </script>
 </body>
 </html>

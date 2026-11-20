@@ -1,0 +1,244 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Log In | MyStudySpace</title>
+
+  <!-- Reuse the same styling as the homepage. -->
+  <link rel="stylesheet" href="../css/base.css">
+
+  <style>
+    /* Keep the login form centered. */
+    .login-panel {
+      max-width: 520px;
+      margin: 50px auto;
+      padding: 30px;
+    }
+
+    .login-panel h1 {
+      margin: 0;
+    }
+
+    /* Match the registration form fields. */
+    .login-panel input {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      font: inherit;
+    }
+
+    .login-panel label {
+      font-weight: 600;
+      color: var(--ink);
+    }
+
+    /* Keep account options below the form. */
+    .account-links {
+      text-align: center;
+      margin-top: 24px;
+      border-top: 1px solid var(--line);
+      padding-top: 20px;
+    }
+
+    .account-links a {
+      color: var(--primary);
+    }
+
+    .account-links .btn {
+      display: block;
+      text-decoration: none;
+    }
+  </style>
+</head>
+
+<body>
+  <!-- Preserve the existing website navigation. -->
+  <header class="topbar">
+    <span class="logo">MyStudySpace</span>
+
+    <nav>
+      <a href="../index.html">Find a Room</a>
+      <a href="../my-reservations.html">My Reservations</a>
+    </nav>
+  </header>
+
+  <!-- Login form for existing registered accounts. -->
+  <main class="panel login-panel">
+
+    <h1>Welcome Back!</h1>
+    <p>Log in to access your MyStudySpace account.</p>
+
+    <!--
+      BROWSER AUTOFILL SUPPORT
+
+      Standard HTML autocomplete attributes allow compatible
+      browsers and password managers to recognize login fields.
+
+      The browser controls whether credentials are saved,
+      suggested, or automatically filled.
+    -->
+    <form id="login-form" autocomplete="on">
+
+      <!--
+        The email address is the account's username.
+        autocomplete="username" identifies the login field
+        for browser password managers.
+      -->
+      <label for="email">Email Address</label>
+      <input
+        type="email"
+        id="email"
+        name="email"
+        placeholder="you@example.com"
+        autocomplete="username"
+        required
+      >
+
+      <!--
+        autocomplete="current-password" identifies this as
+        the password for an existing account.
+      -->
+      <label for="password">Password</label>
+      <input
+        type="password"
+        id="password"
+        name="password"
+        placeholder="Enter your password"
+        autocomplete="current-password"
+        required
+      >
+
+      <button class="btn" id="login-button" type="submit">
+        Log In
+      </button>
+
+    </form>
+
+    <!-- Display login errors and progress messages. -->
+    <p id="message" role="status" aria-live="polite"></p>
+
+    <!-- Other ways to access MyStudySpace. -->
+    <div class="account-links">
+
+      <p>Don't have an account?</p>
+
+      <a href="register.html" class="btn secondary">
+        Create an Account
+      </a>
+
+      <p>
+        <a href="guest.html">Continue as Guest</a>
+      </p>
+
+    </div>
+  </main>
+
+  <script>
+    /*
+     * MyStudySpace - Registered Account Login
+     *
+     * 1. Authenticate registered users through the existing API.
+     * 2. Support standard browser-managed credential autofill.
+     * 3. Clear temporary guest information after successful login.
+     * 4. Redirect authenticated users to the homepage.
+     *
+     * SECURITY:
+     * - The backend authenticates the email and password.
+     * - The backend manages the registered account session.
+     * - MyStudySpace does not store credentials in localStorage.
+     * - Password saving is controlled by the user's browser.
+     */
+
+    const loginForm = document.getElementById('login-form');
+    const emailInput = document.getElementById('email');
+    const passwordInput = document.getElementById('password');
+    const loginButton = document.getElementById('login-button');
+    const message = document.getElementById('message');
+
+    /*
+     * Remove the old custom email-autofill value.
+     *
+     * Browser password managers now handle remembered
+     * login credentials instead of our own localStorage.
+     */
+    localStorage.removeItem('mystudyspace_last_email');
+
+    // Authenticate an existing registered account.
+    loginForm.addEventListener('submit', async function (event) {
+      event.preventDefault();
+
+      // Read credentials entered by the user or browser autofill.
+      const email = emailInput.value.trim();
+      const password = passwordInput.value;
+
+      // Prevent duplicate submissions while logging in.
+      loginButton.disabled = true;
+      loginButton.textContent = 'Logging in...';
+
+      message.textContent = '';
+      message.style.color = '';
+
+      try {
+        // Authenticate using the existing MyStudySpace API.
+        const response = await fetch('/api/accounts/login', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          credentials: 'same-origin',
+          body: JSON.stringify({
+            email,
+            password
+          })
+        });
+
+        const result = await response.json();
+
+        // Display an error if the credentials are incorrect.
+        if (!response.ok) {
+          throw new Error(
+            result.error || 'Login failed.'
+          );
+        }
+
+        /*
+         * Login succeeded.
+         *
+         * Remove temporary guest information so the browser
+         * no longer represents an active guest session.
+         */
+        sessionStorage.removeItem('guestName');
+        sessionStorage.removeItem('guestPhone');
+
+        /*
+         * Return to the homepage.
+         *
+         * Compatible browsers may offer to save credentials
+         * or recognize them for future autofill.
+         * The website cannot force a browser save prompt.
+         */
+        // Redirect users based on their account role.
+        if (result.role === 'staff') {
+          window.location.href = '../admin.html';
+        } else {
+          window.location.href = '../index.html';
+        }
+
+      } catch (error) {
+        // Show the error without leaving the login page.
+        message.textContent = error.message;
+        message.style.color = '#b42318';
+
+      } finally {
+        // Restore the login button after the request finishes.
+        loginButton.disabled = false;
+        loginButton.textContent = 'Log In';
+      }
+    });
+  </script>
+</body>
+</html>

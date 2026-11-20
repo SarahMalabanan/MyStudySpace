@@ -1,0 +1,1424 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Account Settings | MyStudySpace</title>
+
+  <!-- Reuse the existing MyStudySpace styling. -->
+  <link rel="stylesheet" href="../css/base.css">
+
+  <style>
+    /* Keep Account Settings in one centered panel. */
+    .settings-panel {
+      max-width: 650px;
+      margin: 40px auto;
+      padding: 30px;
+    }
+
+    .settings-panel h1 {
+      margin: 0;
+    }
+
+    /* Each settings category expands independently. */
+    .settings-section {
+      border-top: 1px solid var(--line);
+      margin-top: 16px;
+      padding-top: 8px;
+    }
+
+    .settings-section summary {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 14px 0;
+      font-size: 1.1rem;
+      font-weight: 600;
+      cursor: pointer;
+      list-style: none;
+    }
+
+    .settings-section summary::after {
+      content: "⌄";
+      font-size: 1.4rem;
+      color: var(--primary);
+    }
+
+    .settings-section[open] summary::after {
+      content: "⌃";
+    }
+
+    .settings-section summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .section-content {
+      padding: 8px 0 18px;
+    }
+
+    /* Hide settings until the registered session is verified. */
+    .hidden {
+      display: none !important;
+    }
+
+    /* Favorites: Rooms and Preferences tabs. */
+    .tabs {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+
+    .tabs button {
+      flex: 1;
+      padding: 10px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: white;
+      color: var(--ink);
+      cursor: pointer;
+      font: inherit;
+    }
+
+    .tabs button.active {
+      background: var(--primary);
+      color: white;
+    }
+
+    .saved-content {
+      background: var(--bg);
+      border-radius: 8px;
+      padding: 18px;
+    }
+
+    .saved-content h3 {
+      margin-top: 0;
+    }
+
+    /* Saved rooms and reservations share row styling. */
+    .favorite-item,
+    .reservation-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      padding: 14px 0;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .favorite-item:last-child,
+    .reservation-item:last-child {
+      border-bottom: none;
+    }
+
+    .favorite-info,
+    .reservation-info {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .favorite-info span,
+    .reservation-info span {
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    .favorite-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+
+    /* Preserve View and Remove favorite buttons. */
+    .view-favorite,
+    .remove-favorite {
+      width: auto;
+      padding: 8px 12px;
+      border: 1px solid;
+      border-radius: 8px;
+      background: transparent;
+      cursor: pointer;
+      font: inherit;
+      font-size: 0.85rem;
+    }
+
+    .view-favorite {
+      color: var(--primary);
+      border-color: var(--primary);
+    }
+
+    .view-favorite:hover {
+      background: #eef4fa;
+    }
+
+    .remove-favorite {
+      color: #b42318;
+      border-color: #b42318;
+    }
+
+    .remove-favorite:hover {
+      background: #fff1f0;
+    }
+
+    .remove-favorite:disabled {
+      opacity: 0.6;
+      cursor: wait;
+    }
+
+    /* Saved search preferences. */
+    .preference-field {
+      margin-top: 18px;
+    }
+
+    .preference-field > label,
+    .preference-field > .field-title {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 500;
+    }
+
+    .preference-field select {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: white;
+      color: var(--ink);
+      font: inherit;
+    }
+
+    .preference-options {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .preference-options label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      width: auto;
+      cursor: pointer;
+      font-weight: normal;
+    }
+
+    .preference-options input {
+      width: auto;
+      margin: 0;
+    }
+
+    .preference-toggle {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 24px;
+      font-weight: 500;
+    }
+
+    .preference-toggle input {
+      width: auto;
+      margin: 0;
+    }
+
+    #preferences-message {
+      margin-top: 14px;
+      font-size: 0.9rem;
+      color: var(--muted);
+    }
+
+    /* Reservation History remains connected to the API. */
+    .reservation-list {
+      background: var(--bg);
+      border-radius: 8px;
+      padding: 8px 18px;
+    }
+
+    .reservation-item {
+      align-items: flex-start;
+    }
+
+    .reservation-status {
+      font-weight: 600;
+      text-transform: capitalize;
+    }
+
+    /* Account Security: Change Password. */
+    .password-warning {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      margin-top: 18px;
+    }
+
+    .warning-icon {
+      font-size: 1.2rem;
+      flex-shrink: 0;
+      line-height: 1.3;
+    }
+
+    .password-warning strong {
+      display: block;
+      margin-bottom: 5px;
+    }
+
+    .password-warning p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.9rem;
+      line-height: 1.5;
+    }
+
+    #change-password-form label {
+      display: block;
+      margin-top: 15px;
+      margin-bottom: 6px;
+      font-weight: 500;
+    }
+
+    #change-password-form input {
+      display: block;
+      width: 100%;
+      box-sizing: border-box;
+      padding: 10px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      font: inherit;
+    }
+
+    #change-password-form .btn {
+      margin-top: 15px;
+    }
+
+    #password-message {
+      margin-top: 12px;
+      font-size: 0.9rem;
+    }
+
+    #password-message.error {
+      color: #b42318;
+    }
+
+    #password-message.success {
+      color: #237a4b;
+    }
+
+    /* Keep Log Out outside the collapsible categories. */
+    .logout-section {
+      border-top: 1px solid var(--line);
+      margin-top: 24px;
+      padding-top: 12px;
+    }
+
+    .logout-section .btn {
+      background: #b42318;
+    }
+
+    .logout-section .btn:hover:not(:disabled) {
+      background: #912018;
+    }
+
+    #message {
+      margin-top: 16px;
+      color: #b42318;
+    }
+  </style>
+</head>
+
+<body>
+  <!-- Preserve the existing navigation. -->
+  <header class="topbar">
+    <span class="logo">MyStudySpace</span>
+
+    <nav>
+      <a href="../index.html">Find a Room</a>
+      <a href="../my-reservations.html">My Reservations</a>
+    </nav>
+  </header>
+
+  <!--
+    ACCOUNT ACCESS RESTRICTION:
+    Keep the entire panel hidden until the backend verifies
+    that the visitor has a registered account session.
+  -->
+  <main class="panel settings-panel hidden" id="settings-panel">
+
+    <h1>Account Settings</h1>
+
+    <p>
+      Manage your saved rooms, preferences, and account.
+    </p>
+
+    <p id="message" role="status" aria-live="polite"></p>
+
+    <!-- SECTION 1: FAVORITES -->
+    <details class="settings-section">
+      <summary>Favorites</summary>
+
+      <div class="section-content">
+
+        <div class="tabs">
+          <button
+            type="button"
+            class="active"
+            id="rooms-tab"
+          >
+            Rooms
+          </button>
+
+          <button
+            type="button"
+            id="preferences-tab"
+          >
+            Preferences
+          </button>
+        </div>
+
+        <!-- Favorite rooms are stored in MySQL. -->
+        <div class="saved-content" id="rooms-content">
+          <h3>Saved Rooms</h3>
+
+          <div id="saved-rooms-list" aria-live="polite">
+            <p>Loading saved rooms...</p>
+          </div>
+        </div>
+
+        <!--
+          Preferences are stored in an account-specific
+          browser cookie.
+        -->
+        <div
+          class="saved-content hidden"
+          id="preferences-content"
+        >
+          <h3>Saved Preferences</h3>
+
+          <p>
+            Choose your preferred time, days of the week,
+            floor, and accessories.
+          </p>
+
+          <!-- Preferred reservation time. -->
+          <div class="preference-field">
+            <label for="preferred-time">Time</label>
+
+            <select id="preferred-time">
+              <option value="">Any Time</option>
+              <option value="8">8:00AM – 9:00AM</option>
+              <option value="9">9:00AM – 10:00AM</option>
+              <option value="10">10:00AM – 11:00AM</option>
+              <option value="11">11:00AM – 12:00PM</option>
+              <option value="12">12:00PM – 1:00PM</option>
+              <option value="13">1:00PM – 2:00PM</option>
+              <option value="14">2:00PM – 3:00PM</option>
+              <option value="15">3:00PM – 4:00PM</option>
+              <option value="16">4:00PM – 5:00PM</option>
+              <option value="17">5:00PM – 6:00PM</option>
+              <option value="18">6:00PM – 7:00PM</option>
+              <option value="19">7:00PM – 8:00PM</option>
+              <option value="20">8:00PM – 9:00PM</option>
+            </select>
+          </div>
+
+          <!-- Preferred weekdays. -->
+          <div class="preference-field">
+            <span class="field-title">Days of the Week</span>
+
+            <div class="preference-options">
+              <label>
+                <input
+                  type="checkbox"
+                  name="preferred-day"
+                  value="0"
+                >
+                Sun
+              </label>
+
+              <label>
+                <input
+                  type="checkbox"
+                  name="preferred-day"
+                  value="1"
+                >
+                Mon
+              </label>
+
+              <label>
+                <input
+                  type="checkbox"
+                  name="preferred-day"
+                  value="2"
+                >
+                Tue
+              </label>
+
+              <label>
+                <input
+                  type="checkbox"
+                  name="preferred-day"
+                  value="3"
+                >
+                Wed
+              </label>
+
+              <label>
+                <input
+                  type="checkbox"
+                  name="preferred-day"
+                  value="4"
+                >
+                Thu
+              </label>
+
+              <label>
+                <input
+                  type="checkbox"
+                  name="preferred-day"
+                  value="5"
+                >
+                Fri
+              </label>
+
+              <label>
+                <input
+                  type="checkbox"
+                  name="preferred-day"
+                  value="6"
+                >
+                Sat
+              </label>
+            </div>
+          </div>
+
+          <!-- Preferred floor. -->
+          <div class="preference-field">
+            <label for="preferred-floor">Floor</label>
+
+            <select id="preferred-floor">
+              <option value="">Any Floor</option>
+              <option value="2">Second Floor</option>
+              <option value="3">Third Floor</option>
+            </select>
+          </div>
+
+          <!-- Preferred accessories. -->
+          <div class="preference-field">
+            <span class="field-title">Accessories</span>
+
+            <div class="preference-options">
+              <label>
+                <input type="checkbox" id="pref-whiteboard">
+                Whiteboard
+              </label>
+
+              <label>
+                <input type="checkbox" id="pref-tv">
+                TV
+              </label>
+
+              <label>
+                <input type="checkbox" id="pref-window">
+                Window
+              </label>
+
+              <label>
+                <input type="checkbox" id="pref-outlet">
+                Outlet
+              </label>
+            </div>
+          </div>
+
+          <!-- Automatic preference application. -->
+          <label class="preference-toggle">
+            <input type="checkbox" id="use-preferences">
+            Automatically apply saved filters
+          </label>
+
+          <button
+            class="btn"
+            id="save-preferences"
+            type="button"
+            disabled
+          >
+            Save Preferences
+          </button>
+
+          <p
+            id="preferences-message"
+            role="status"
+            aria-live="polite"
+          ></p>
+        </div>
+      </div>
+    </details>
+
+    <!-- SECTION 2: RESERVATION HISTORY -->
+    <details
+      class="settings-section"
+      id="reservation-history"
+    >
+      <summary>Reservation History</summary>
+
+      <div class="section-content">
+        <p>
+          View your current and previous study room reservations.
+        </p>
+
+        <div
+          class="reservation-list"
+          id="reservation-history-list"
+          aria-live="polite"
+        >
+          <p>Loading reservations...</p>
+        </div>
+      </div>
+    </details>
+
+    <!-- SECTION 3: ACCOUNT SECURITY -->
+    <details
+      class="settings-section"
+      id="account-security"
+    >
+      <summary>Account Security</summary>
+
+      <div class="section-content">
+        <p>Manage your account password.</p>
+
+        <!-- Display Change Password and its warning first. -->
+        <div id="password-intro">
+
+          <button
+            class="btn"
+            id="show-password-form"
+            type="button"
+            disabled
+          >
+            Change Password
+          </button>
+
+          <div class="password-warning">
+            <span class="warning-icon" aria-hidden="true">
+              ⚠️
+            </span>
+
+            <div>
+              <strong>
+                Are you sure you want to change your password?
+              </strong>
+
+              <p>
+                Changing your password will require you to use
+                the new one next time you log in.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Show only after Change Password is clicked. -->
+        <form id="change-password-form" class="hidden">
+
+          <label for="current-password">
+            Current Password
+          </label>
+
+          <input
+            type="password"
+            id="current-password"
+            autocomplete="current-password"
+            required
+          >
+
+          <label for="new-password">
+            New Password
+          </label>
+
+          <input
+            type="password"
+            id="new-password"
+            autocomplete="new-password"
+            minlength="8"
+            maxlength="72"
+            required
+          >
+
+          <label for="confirm-password">
+            Confirm New Password
+          </label>
+
+          <input
+            type="password"
+            id="confirm-password"
+            autocomplete="new-password"
+            minlength="8"
+            maxlength="72"
+            required
+          >
+
+          <button
+            class="btn"
+            id="save-new-password"
+            type="submit"
+          >
+            Save New Password
+          </button>
+
+          <button
+            class="btn secondary"
+            id="cancel-password"
+            type="button"
+          >
+            Cancel
+          </button>
+        </form>
+
+        <p
+          id="password-message"
+          role="status"
+          aria-live="polite"
+        ></p>
+      </div>
+    </details>
+
+    <!-- SECTION 4: LOG OUT -->
+    <div class="logout-section">
+      <button
+        class="btn"
+        id="logout-button"
+        type="button"
+      >
+        Log Out
+      </button>
+    </div>
+
+  </main>
+
+  <script>
+    /*
+     * MyStudySpace - Account Settings
+     *
+     * Only registered users with a verified backend session
+     * may access this page.
+     *
+     * Guests are redirected to Guest Access.
+     * Logged-out visitors are redirected to Log In.
+     *
+     * Favorites and reservation history use existing APIs.
+     * Password changes use the authenticated account API.
+     */
+
+    // Store the verified account ID.
+    let currentUserId = null;
+
+    // Name the preference cookie for the current account.
+    function preferenceCookieName() {
+      return `mystudyspace_preferences_${currentUserId}`;
+    }
+
+    // Read this account's saved preferences.
+    function readPreferenceCookie() {
+      if (!currentUserId) return null;
+
+      const prefix = preferenceCookieName() + '=';
+
+      const entry = document.cookie.split('; ')
+        .find(item => item.startsWith(prefix));
+
+      if (!entry) return null;
+
+      try {
+        return JSON.parse(
+          decodeURIComponent(entry.slice(prefix.length))
+        );
+      } catch (error) {
+        console.error(
+          'Could not read saved preferences:',
+          error
+        );
+        return null;
+      }
+    }
+
+    /*
+     * FAVORITES
+     * Load favorite rooms belonging to the registered user.
+     */
+    async function loadFavoriteRooms() {
+      const list = document.getElementById('saved-rooms-list');
+
+      list.textContent = 'Loading saved rooms...';
+
+      try {
+        const response = await fetch('/api/accounts/favorites', {
+          credentials: 'same-origin',
+          cache: 'no-store'
+        });
+
+        if (!response.ok) {
+          throw new Error('Could not load favorite rooms.');
+        }
+
+        const favorites = await response.json();
+
+        if (!Array.isArray(favorites)) {
+          throw new Error('Invalid favorite room data.');
+        }
+
+        list.replaceChildren();
+
+        if (favorites.length === 0) {
+          list.textContent = 'You have no saved rooms yet.';
+          return;
+        }
+
+        // Display each favorite with View and Remove.
+        favorites.forEach(room => {
+          const item = document.createElement('div');
+          item.className = 'favorite-item';
+
+          const info = document.createElement('div');
+          info.className = 'favorite-info';
+
+          const name = document.createElement('strong');
+          name.textContent = `Room ${room.room_code}`;
+
+          const floor = document.createElement('span');
+
+          floor.textContent =
+            Number(room.floor) === 2
+              ? 'Second Floor'
+              : Number(room.floor) === 3
+                ? 'Third Floor'
+                : `Floor ${room.floor}`;
+
+          info.append(name, floor);
+
+          // View the room using the existing homepage shortcut.
+          const viewButton = document.createElement('button');
+          viewButton.type = 'button';
+          viewButton.className = 'view-favorite';
+          viewButton.textContent = 'View';
+
+          viewButton.addEventListener('click', () => {
+            const roomId = String(room.id);
+
+            if (!roomId || roomId === 'undefined') {
+              alert('Could not find this room.');
+              return;
+            }
+
+            const destination = new URL(
+              '/',
+              window.location.origin
+            );
+
+            destination.searchParams.set('viewRoom', roomId);
+
+            window.location.assign(destination.href);
+          });
+
+          // Remove the favorite relationship from MySQL.
+          const removeButton = document.createElement('button');
+          removeButton.type = 'button';
+          removeButton.className = 'remove-favorite';
+          removeButton.textContent = 'Remove';
+
+          removeButton.addEventListener('click', async () => {
+            removeButton.disabled = true;
+            removeButton.textContent = 'Removing...';
+
+            try {
+              const response = await fetch(
+                '/api/accounts/favorites',
+                {
+                  method: 'DELETE',
+                  headers: {
+                    'Content-Type': 'application/json'
+                  },
+                  credentials: 'same-origin',
+                  body: JSON.stringify({
+                    roomId: room.id
+                  })
+                }
+              );
+
+              if (!response.ok) {
+                throw new Error(
+                  'Could not remove favorite room.'
+                );
+              }
+
+              await loadFavoriteRooms();
+
+            } catch (error) {
+              alert(error.message);
+              removeButton.disabled = false;
+              removeButton.textContent = 'Remove';
+            }
+          });
+
+          const actions = document.createElement('div');
+          actions.className = 'favorite-actions';
+
+          actions.append(viewButton, removeButton);
+          item.append(info, actions);
+          list.appendChild(item);
+        });
+
+      } catch (error) {
+        console.error('Could not load favorites:', error);
+
+        list.textContent =
+          'Could not load saved rooms. Please try again.';
+      }
+    }
+
+    /*
+     * RESERVATION HISTORY
+     * Display account-specific reservations from the existing API.
+     *
+     * This code does not create or modify reservations.
+     */
+    async function loadReservationHistory() {
+      const list = document.getElementById(
+        'reservation-history-list'
+      );
+
+      if (!currentUserId) {
+        list.textContent =
+          'Log in to view your reservation history.';
+        return;
+      }
+
+      list.textContent = 'Loading reservations...';
+
+      try {
+        const response = await fetch('/api/reservations', {
+          credentials: 'same-origin',
+          cache: 'no-store'
+        });
+
+        if (!response.ok) {
+          throw new Error(
+            'Could not load reservation history.'
+          );
+        }
+
+        const reservations = await response.json();
+
+        if (!Array.isArray(reservations)) {
+          throw new Error('Invalid reservation data.');
+        }
+
+        list.replaceChildren();
+
+        if (reservations.length === 0) {
+          list.textContent = 'You have no reservations yet.';
+          return;
+        }
+
+        // Format MySQL DATETIME without shifting the date.
+        function formatReservationDate(value) {
+          if (!value) return '';
+
+          const normalized = String(value).replace('T', ' ');
+
+          const match = normalized.match(
+            /^(\d{4})-(\d{2})-(\d{2})[ ](\d{2}):(\d{2})/
+          );
+
+          if (!match) return normalized;
+
+          const [, year, month, day, hour, minute] = match;
+          const hourNumber = Number(hour);
+
+          return (
+            `${month}/${day}/${year} · ` +
+            `${hourNumber % 12 || 12}:${minute}` +
+            `${hourNumber >= 12 ? 'PM' : 'AM'}`
+          );
+        }
+
+        reservations.forEach(reservation => {
+          const item = document.createElement('div');
+          item.className = 'reservation-item';
+
+          const info = document.createElement('div');
+          info.className = 'reservation-info';
+
+          const name = document.createElement('strong');
+
+          name.textContent =
+            reservation.room_name ||
+            `Room ${reservation.room_code}`;
+
+          const location = document.createElement('span');
+
+          location.textContent =
+            `${reservation.library} · Floor ${reservation.floor}`;
+
+          const start = document.createElement('span');
+
+          start.textContent =
+            `Start: ${formatReservationDate(reservation.start_time)}`;
+
+          const end = document.createElement('span');
+
+          end.textContent =
+            `End: ${formatReservationDate(reservation.end_time)}`;
+
+          const status = document.createElement('span');
+          status.className = 'reservation-status';
+
+          status.textContent =
+            `Status: ${reservation.status}`;
+
+          info.append(name, location, start, end, status);
+
+          if (reservation.confirmation_code) {
+            const confirmation = document.createElement('span');
+
+            confirmation.textContent =
+              `Confirmation: ${reservation.confirmation_code}`;
+
+            info.appendChild(confirmation);
+          }
+
+          item.appendChild(info);
+          list.appendChild(item);
+        });
+
+      } catch (error) {
+        console.error(
+          'Could not load reservation history:',
+          error
+        );
+
+        list.textContent =
+          'Could not load reservations. Please try again.';
+      }
+    }
+
+    /*
+     * ACCOUNT RECOGNITION AND GUEST RESTRICTIONS
+     *
+     * The backend determines whether the visitor has a
+     * valid registered account session.
+     *
+     * Guest sessionStorage alone never grants access.
+     */
+    async function loadSettings() {
+      const panel = document.getElementById('settings-panel');
+      const saveButton = document.getElementById(
+        'save-preferences'
+      );
+      const passwordButton = document.getElementById(
+        'show-password-form'
+      );
+
+      // Prevent unauthorized visitors from seeing the layout.
+      panel.classList.add('hidden');
+
+      let user;
+
+      try {
+        const response = await fetch(
+          '/api/accounts/recognizeduser',
+          {
+            credentials: 'same-origin',
+            cache: 'no-store'
+          }
+        );
+
+        // No valid registered account session.
+        if (response.status === 401 ||
+            response.status === 403) {
+
+          const guestActive = Boolean(
+            sessionStorage.getItem('guestName') &&
+            sessionStorage.getItem('guestPhone')
+          );
+
+          // Guests return to Guest Access.
+          // Other visitors return to Log In.
+          window.location.replace(
+            guestActive ? 'guest.html' : 'login.html'
+          );
+
+          return;
+        }
+
+        if (!response.ok) {
+          throw new Error(
+            'Could not verify your account session.'
+          );
+        }
+
+        user = await response.json();
+
+        if (user.user_id == null) {
+          throw new Error('Missing account ID.');
+        }
+
+      } catch (error) {
+        console.error(
+          'Account verification failed:',
+          error
+        );
+
+        // Keep settings hidden if verification is unavailable.
+        document.getElementById('message').textContent =
+          'Could not verify your account. Please try again.';
+
+        alert(
+          'Could not verify your account. Please try again.'
+        );
+
+        window.location.replace('login.html');
+        return;
+      }
+
+      // The backend has verified the registered account.
+      currentUserId = user.user_id;
+
+      document.getElementById('message').textContent = '';
+
+      // Enable registered-account-only controls.
+      saveButton.disabled = false;
+      passwordButton.disabled = false;
+
+      document.getElementById('use-preferences').disabled =
+        false;
+
+      // Restore the verified account's preferences.
+      restorePreferences();
+
+      // Only now reveal Account Settings.
+      panel.classList.remove('hidden');
+
+      // Load account-specific data from existing APIs.
+      await loadFavoriteRooms();
+      await loadReservationHistory();
+    }
+
+    /*
+     * FAVORITES TABS
+     * Switch between Rooms and Preferences.
+     */
+    const roomsTab = document.getElementById('rooms-tab');
+    const preferencesTab = document.getElementById(
+      'preferences-tab'
+    );
+
+    roomsTab.addEventListener('click', () => {
+      roomsTab.classList.add('active');
+      preferencesTab.classList.remove('active');
+
+      document.getElementById('rooms-content')
+        .classList.remove('hidden');
+
+      document.getElementById('preferences-content')
+        .classList.add('hidden');
+
+      if (currentUserId) {
+        loadFavoriteRooms();
+      }
+    });
+
+    preferencesTab.addEventListener('click', () => {
+      preferencesTab.classList.add('active');
+      roomsTab.classList.remove('active');
+
+      document.getElementById('preferences-content')
+        .classList.remove('hidden');
+
+      document.getElementById('rooms-content')
+        .classList.add('hidden');
+    });
+
+    /*
+     * SAVED PREFERENCES
+     * Restore the account's preferred search filters.
+     */
+    function restorePreferences() {
+      const saved = readPreferenceCookie();
+
+      if (!saved) return;
+
+      document.getElementById('preferred-time').value =
+        saved.time || '';
+
+      document.getElementById('preferred-floor').value =
+        saved.floor || '';
+
+      document.querySelectorAll('[name="preferred-day"]')
+        .forEach(input => {
+          input.checked =
+            Array.isArray(saved.days) &&
+            saved.days.includes(input.value);
+        });
+
+      ['whiteboard', 'tv', 'window', 'outlet']
+        .forEach(item => {
+          document.getElementById('pref-' + item).checked =
+            Boolean(
+              saved.accessories &&
+              saved.accessories[item]
+            );
+        });
+
+      document.getElementById('use-preferences').checked =
+        saved.autoApply === true;
+    }
+
+    // Save preferences in an account-specific 30-day cookie.
+    document.getElementById('save-preferences')
+      .addEventListener('click', () => {
+        if (!currentUserId) return;
+
+        const accessories = {};
+
+        ['whiteboard', 'tv', 'window', 'outlet']
+          .forEach(item => {
+            accessories[item] =
+              document.getElementById('pref-' + item).checked;
+          });
+
+        const preferences = {
+          time: document.getElementById(
+            'preferred-time'
+          ).value,
+
+          days: [
+            ...document.querySelectorAll(
+              '[name="preferred-day"]:checked'
+            )
+          ].map(input => input.value),
+
+          floor: document.getElementById(
+            'preferred-floor'
+          ).value,
+
+          accessories,
+
+          autoApply: document.getElementById(
+            'use-preferences'
+          ).checked
+        };
+
+        const secure =
+          location.protocol === 'https:' ? '; Secure' : '';
+
+        document.cookie =
+          preferenceCookieName() + '=' +
+          encodeURIComponent(JSON.stringify(preferences)) +
+          '; Path=/; Max-Age=2592000; SameSite=Lax' +
+          secure;
+
+        document.getElementById(
+          'preferences-message'
+        ).textContent =
+          readPreferenceCookie()
+            ? 'Preferences saved successfully!'
+            : 'Could not save preferences. Please enable cookies and try again.';
+      });
+
+    // Refresh history whenever its section opens.
+    document.getElementById('reservation-history')
+      .addEventListener('toggle', function () {
+        if (this.open && currentUserId) {
+          loadReservationHistory();
+        }
+      });
+
+    /*
+     * ACCOUNT SECURITY
+     * Change Password UI.
+     */
+    const passwordIntro = document.getElementById(
+      'password-intro'
+    );
+
+    const passwordForm = document.getElementById(
+      'change-password-form'
+    );
+
+    const passwordMessage = document.getElementById(
+      'password-message'
+    );
+
+    // Show the password form only for verified accounts.
+    document.getElementById('show-password-form')
+      .addEventListener('click', () => {
+        if (!currentUserId) {
+          passwordMessage.textContent =
+            'Please log in to change your password.';
+
+          passwordMessage.className = 'error';
+          return;
+        }
+
+        passwordIntro.classList.add('hidden');
+        passwordForm.classList.remove('hidden');
+
+        passwordMessage.textContent = '';
+        passwordMessage.className = '';
+
+        document.getElementById(
+          'current-password'
+        ).focus();
+      });
+
+    // Cancel and clear the password form.
+    document.getElementById('cancel-password')
+      .addEventListener('click', () => {
+        passwordForm.reset();
+
+        passwordForm.classList.add('hidden');
+        passwordIntro.classList.remove('hidden');
+
+        passwordMessage.textContent = '';
+        passwordMessage.className = '';
+      });
+
+    /*
+     * CHANGE PASSWORD
+     * The backend verifies the current password,
+     * hashes the replacement, and updates MySQL.
+     */
+    passwordForm.addEventListener('submit', async event => {
+      event.preventDefault();
+
+      if (!currentUserId) {
+        passwordMessage.textContent =
+          'Please log in to change your password.';
+
+        passwordMessage.className = 'error';
+        return;
+      }
+
+      const currentPassword = document.getElementById(
+        'current-password'
+      ).value;
+
+      const newPassword = document.getElementById(
+        'new-password'
+      ).value;
+
+      const confirmPassword = document.getElementById(
+        'confirm-password'
+      ).value;
+
+      const saveButton = document.getElementById(
+        'save-new-password'
+      );
+
+      // Both new password fields must match.
+      if (newPassword !== confirmPassword) {
+        passwordMessage.textContent =
+          'Your new passwords do not match.';
+
+        passwordMessage.className = 'error';
+        return;
+      }
+
+      // Match the existing password validation requirements.
+      if (newPassword.length < 8 ||
+          newPassword.length > 72) {
+
+        passwordMessage.textContent =
+          'Your new password must be between 8 and 72 characters.';
+
+        passwordMessage.className = 'error';
+        return;
+      }
+
+      saveButton.disabled = true;
+      saveButton.textContent = 'Saving...';
+
+      passwordMessage.textContent = '';
+      passwordMessage.className = '';
+
+      try {
+        const response = await fetch(
+          '/api/accounts/change-password',
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            credentials: 'same-origin',
+            body: JSON.stringify({
+              currentPassword,
+              newPassword,
+              confirmPassword
+            })
+          }
+        );
+
+        const result = await response.json();
+
+        if (!response.ok) {
+          throw new Error(
+            result.error ||
+            'Could not change your password.'
+          );
+        }
+
+        // Clear the form after successful password change.
+        passwordForm.reset();
+
+        passwordForm.classList.add('hidden');
+        passwordIntro.classList.remove('hidden');
+
+        passwordMessage.textContent =
+          'Password changed successfully!';
+
+        passwordMessage.className = 'success';
+
+      } catch (error) {
+        passwordMessage.textContent = error.message;
+        passwordMessage.className = 'error';
+
+      } finally {
+        saveButton.disabled = false;
+        saveButton.textContent = 'Save New Password';
+      }
+    });
+
+    /*
+     * LOG OUT
+     * End the registered account session.
+     */
+    document.getElementById('logout-button')
+      .addEventListener('click', async function () {
+        this.disabled = true;
+
+        try {
+          const response = await fetch(
+            '/api/accounts/logout',
+            {
+              method: 'POST',
+              credentials: 'same-origin'
+            }
+          );
+
+          if (!response.ok) {
+            throw new Error('Logout failed');
+          }
+
+          window.location.replace('../index.html');
+
+        } catch (error) {
+          document.getElementById('message').textContent =
+            'Could not log out. Please try again.';
+
+          this.disabled = false;
+        }
+      });
+
+    // Verify the registered session before showing the page.
+    loadSettings();
+  </script>
+</body>
+</html>
