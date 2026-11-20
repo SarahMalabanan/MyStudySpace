@@ -23,6 +23,26 @@ function floorName(floor) {
   return names[floor] || `Floor ${floor}`;
 }
 
+function decimalToTime(value) {
+  const hour = Math.floor(value);
+
+  const minutes =
+    value % 1 === 0.5
+      ? "30"
+      : "00";
+
+  return `${String(hour).padStart(2, "0")}:${minutes}:00`;
+}
+
+function isValidTimeSlot(value) {
+  return (
+    Number.isFinite(value) &&
+    value >= 0 &&
+    value <= 24 &&
+    (Number.isInteger(value) || value % 1 === 0.5)
+  );
+}
+
 // Get the current date and hour in the library's local timezone.
 function getLocalDateTime() {
   const parts = new Intl.DateTimeFormat("en-US", {
@@ -57,10 +77,8 @@ module.exports = async function handler(req, res) {
 
       if (
         !/^\d{4}-\d{2}-\d{2}$/.test(date || '') ||
-        !Number.isInteger(startHour) ||
-        !Number.isInteger(endHour) ||
-        startHour < 0 ||
-        endHour > 24 ||
+        !isValidTimeSlot(startHour) ||
+        !isValidTimeSlot(endHour) ||
         endHour <= startHour
       ) {
         return sendResponse(res, 400, {
@@ -70,10 +88,10 @@ module.exports = async function handler(req, res) {
       }
 
       const startTime =
-        `${date} ${String(startHour).padStart(2, "0")}:00:00`;
+  `${date} ${decimalToTime(startHour)}`;
 
-      const endTime =
-        `${date} ${String(endHour).padStart(2, "0")}:00:00`;
+const endTime =
+  `${date} ${decimalToTime(endHour)}`;
 
       const [rows] = await pool.query(
         `SELECT DISTINCT room_id
@@ -195,8 +213,8 @@ module.exports = async function handler(req, res) {
   const endHour = Number(end);
 
   if (
-    !Number.isInteger(startHour) ||
-    !Number.isInteger(endHour) ||
+    !isValidTimeSlot(startHour) ||
+    !isValidTimeSlot(endHour) ||
     startHour < 0 ||
     endHour > 24 ||
     endHour <= startHour ||
@@ -225,18 +243,33 @@ module.exports = async function handler(req, res) {
   }
 
   // Do not allow reservations for hours that have already started.
-  if (date === now.date && startHour <= now.hour) {
-    return sendResponse(res, 400, {
-      success: false,
-      message: "You cannot reserve a time that has already started."
-    });
-  }
+ let currentSlot = now.hour;
+
+const currentMinutes = new Date().getMinutes();
+
+if (currentMinutes > 0 && currentMinutes <= 30) {
+  currentSlot += 0.5;
+}
+else if (currentMinutes > 30) {
+  currentSlot += 1;
+}
+
+if (
+  date === now.date &&
+  startHour < currentSlot
+) {
+  return sendResponse(res, 400, {
+    success: false,
+    message:
+      "You cannot reserve a time that has already passed."
+  });
+}
 
   const startTime =
-    `${date} ${String(startHour).padStart(2, "0")}:00:00`;
+    `${date} ${decimalToTime(startHour)}`;
 
   const endTime =
-    `${date} ${String(endHour).padStart(2, "0")}:00:00`;
+    `${date} ${decimalToTime(endHour)}`;
 
   let connection;
   let room;

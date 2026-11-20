@@ -133,13 +133,65 @@ function showHoursNote(hours) {
  * - Future dates: the library's opening hour.
  * - Today: the next full hour after now (so past times can't be chosen).
  */
-function getEarliestStart(date, hours) {
-  if (date === today()) {
-    const currentHour = new Date().getHours();
-    return Math.max(hours.open, currentHour + 1);
+function timeOptions(start, end){
+  let html = '';
+
+  for (let time = start; time <= end; time += 0.5){
+    html += `<option value="${time}">${formatTime(time)}</option>`;
   }
-  return hours.open;
+  return html;
 }
+
+function formatTime(time) {
+  const hour = Math.floor(time);
+
+  const minutes =
+    time % 1 === 0.5
+      ? '30'
+      : '00';
+
+  const displayHour =
+    hour % 12 || 12;
+
+  const suffix =
+    hour >= 12 ? 'PM' : 'AM';
+
+  return `${displayHour}:${minutes} ${suffix}`;
+}
+
+function getEarliestStart(date, hours) {
+  if (date !== today()) {
+    return hours.open;
+  }
+
+  const now = new Date();
+
+  const currentHour = now.getHours();
+  const currentMinute = now.getMinutes();
+  
+  let nextSlot;
+
+  if (currentMinute === 0) {
+    nextSlot = currentHour;
+  } else if (currentMinute <= 30) {
+    nextSlot = currentHour + 0.5;
+  } else {
+    nextSlot = currentHour + 1;
+  }
+
+  return Math.max(hours.open, nextSlot);
+}
+
+/**if (currentMinute === 0) {
+  earliestStart = currentHour;
+}
+else if (currentMinute <= 30) {
+  earliestStart = currentHour + 0.5;
+}
+else {
+  earliestStart = currentHour + 1;
+}*/
+
 
 /**
  * Validate a selection and return an error message,
@@ -232,10 +284,10 @@ function updateTimeOptions(preferredStart) {
 
   // The list is rebuilt from scratch for the selected day, so each day
   // only offers the hours that library is open (and not already passed).
-  $('start').innerHTML = hourOptions(
+  $('start').innerHTML = timeOptions(
     earliestStart,
     latestStart,
-    false
+    
   );
 
   // Use the preferred start if it is allowed that day, otherwise the earliest.
@@ -256,29 +308,61 @@ function updateEndOptions() {
   if (!room) return;
 
   const date = $('date').value;
-  const hours = getLibraryHours(date, room.library);
+  const hours = getLibraryHours(
+    date,
+    room.library
+  );
+
   const start = Number($('start').value);
 
-  // Nothing to build if the library is closed or no start time exists.
-  if (isClosedAllDay(hours) || !$('start').value || Number.isNaN(start)) {
-    $('end').innerHTML = '<option value="">Closed</option>';
+  if (
+    isClosedAllDay(hours) ||
+    !$('start').value ||
+    Number.isNaN(start)
+  ) {
+    $('end').innerHTML =
+      '<option value="">Closed</option>';
+
+    $('end').disabled = true;
+    return;
+  }
+
+  const options = [];
+
+  // 1-hour reservation
+  const endOneHour = start + 1;
+
+  if (endOneHour <= hours.close) {
+    options.push(endOneHour);
+  }
+
+  // 2-hour reservation
+  const endTwoHours = start + 2;
+
+  if (endTwoHours <= hours.close) {
+    options.push(endTwoHours);
+  }
+
+  if (options.length === 0) {
+    $('end').innerHTML =
+      '<option value="">No valid end time</option>';
+
     $('end').disabled = true;
     return;
   }
 
   $('end').disabled = false;
 
-  const latestEnd = Math.min(start + MAX_DURATION, hours.close);
+  $('end').innerHTML = options
+    .map(
+      (time) =>
+        `<option value="${time}">
+          ${formatTime(time)}
+        </option>`
+    )
+    .join('');
 
-  $('end').innerHTML = hourOptions(
-    start + 1,
-    latestEnd,
-    false
-  );
-
-  // Default to a 1-hour reservation.
-  $('end').value = start + 1;
-  if (!$('end').value) $('end').selectedIndex = 0;
+  $('end').value = options[0];
 }
 
 async function init() {
@@ -397,7 +481,7 @@ async function update() {
   $('s-room').textContent = room.name || room.room_code;
   $('s-date').textContent = date;
   $('s-time').textContent = hasTimes
-    ? `${fmtHour(start)} – ${fmtHour(end)}`
+    ? `${formatTime(start)} – ${formatTime(end)}`
     : '—';
   $('s-floor').textContent = `${room.library}, ${floorName(room.floor)}`;
 
@@ -449,8 +533,8 @@ function showConfirmation(reservation) {
   $('c-room').textContent = room.name || room.room_code;
   $('c-date').textContent = reservation.start_time.split(' ')[0];
   $('c-time').textContent =
-    `${fmtHour(Number(reservation.start_time.split(' ')[1].slice(0, 2)))} – ${
-      fmtHour(Number(reservation.end_time.split(' ')[1].slice(0, 2)))
+    `${formatTime(Number(reservation.start_time.split(' ')[1].slice(0, 2)))} – ${
+      formatTime(Number(reservation.end_time.split(' ')[1].slice(0, 2)))
     }`;
   $('c-email').textContent = reservation.guest_email || 'Not provided';
   $('c-phone').textContent = reservation.guest_phone || 'Not provided';
