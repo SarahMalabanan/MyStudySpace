@@ -13,6 +13,46 @@ const state = { library: null, floor: null, selected: null };
 // DOED: Add account favorites without changing the map structure.
 let favoriteRoomIds = new Set();
 let favoritesLoaded = false;
+// Operating hours for each library building, keyed by a short name.
+// Day keys follow JavaScript's getDay(): 0 = Sunday ... 6 = Saturday.
+// Hours use 24-hour time. { open: 0, close: 0 } means closed all day.
+// NOTE: keep this table identical to the one in reserve.js.
+const libraryHours = {
+  union: {
+    0: { open: 12, close: 23 }, // Sunday
+    1: { open: 8, close: 23 },  // Monday
+    2: { open: 8, close: 23 },
+    3: { open: 8, close: 23 },
+    4: { open: 8, close: 23 },
+    5: { open: 8, close: 20 },
+    6: { open: 8, close: 16 },
+  },
+
+  jerseycity: {
+    0: { open: 0, close: 0 },   // Sunday (closed)
+    1: { open: 8, close: 20 },  // Monday
+    2: { open: 8, close: 20 },
+    3: { open: 8, close: 20 },
+    4: { open: 8, close: 20 },
+    5: { open: 8, close: 18 },
+    6: { open: 8, close: 16 },
+  },
+};
+
+// Maps the library names stored in the database to the keys above.
+// Keys are lowercase letters only (spaces and punctuation removed); a library
+// name that CONTAINS the key matches, e.g. "Frank J. Guarini Library".
+const LIBRARY_ALIASES = {
+  nancythompson: 'union',     // Nancy Thompson Learning Commons
+  guarini: 'jerseycity',      // Frank J. Guarini Library
+};
+
+// Hours used ONLY when a library name matches nothing above.
+const DEFAULT_HOURS = { open: 8, close: 21 };
+
+// True when the selected date/library has bookable times.
+// When false, the time list is disabled and every room shows as unavailable.
+let timesAvailable = true;
 
 const floorsFor = (lib) =>
   [...new Set(
@@ -37,6 +77,86 @@ function floorName(floor) {
   return names[floor] || `Floor ${floor}`;
 }
 
+// Operating hours helpers
+
+/**
+ * Parse a 'YYYY-MM-DD' string as a LOCAL date.
+ * new Date('2026-11-18') is parsed as UTC, which gives the previous day in
+ * US time zones and would pick the wrong day's operating hours.
+ */
+function parseLocalDate(dateStr) {
+  const [year, month, day] = String(dateStr).split('-').map(Number);
+  return new Date(year, month - 1, day);
+}
+
+/** Map a database library name to a key of libraryHours (or null). */
+function resolveLibraryKey(library) {
+  // Lowercase and strip spaces/punctuation:
+  // "Frank J. Guarini Library" -> "frankjguarinilibrary"
+  const normalized = String(library).toLowerCase().replace(/[^a-z]/g, '');
+
+  if (libraryHours[normalized]) return normalized;
+
+  // A name that contains an alias (or a key) matches that library.
+  const alias = Object.keys(LIBRARY_ALIASES).find((a) => normalized.includes(a));
+  if (alias) return LIBRARY_ALIASES[alias];
+
+  return Object.keys(libraryHours).find((key) => normalized.includes(key)) || null;
+}
+
+/** Operating hours { open, close } for a library on a date (null if no valid date). */
+function getLibraryHours(date, library) {
+  if (!date) return null;
+
+  const parsed = parseLocalDate(date);
+  if (Number.isNaN(parsed.getTime())) return null;
+
+  const key = resolveLibraryKey(library);
+
+  if (!key) {
+    console.warn(
+      `No operating hours configured for library: "${library}". Using default hours.`
+    );
+    return DEFAULT_HOURS;
+  }
+
+  return libraryHours[key][parsed.getDay()];
+}
+
+/** True if the library does not open at all on this day. */
+function isClosedAllDay(hours) {
+  return !hours || (hours.open === 0 && hours.close === 0);
+}
+
+/**
+ * First hour that can be booked on a date:
+ * the opening hour, or the next full hour if the date is today.
+ */
+function getEarliestStart(date, hours) {
+  if (date === today()) {
+    return Math.max(hours.open, new Date().getHours() + 1);
+  }
+  return hours.open;
+}
+
+/** Show (or clear) a message under the time dropdown. */
+function showTimeMessage(text) {
+  let msg = $('time-msg');
+
+  // Create the message element if the page doesn't have one.
+  if (!msg) {
+    msg = document.createElement('div');
+    msg.id = 'time-msg';
+    msg.setAttribute('role', 'status');
+    $('time').after(msg);
+  }
+
+  msg.textContent = text;
+  msg.className = text ? 'msg error' : '';
+}
+
+
+// Match the library name to a floor plan ignoring extra spaces and capital letters
 function planFor() {
   const key = Object.keys(FLOORPLANS)
     .find((k) => norm(k) === norm(state.library));
@@ -66,6 +186,13 @@ function isAvailable(r) {
 }
 
 async function updateAvailability() {
+  // Library closed (or nothing left today): no room can be booked.
+  if (!timesAvailable) {
+    unavailableRoomIds = new Set(rooms.map((r) => Number(r.id)));
+    render();
+    return;
+  }
+
   try {
     const roomIds = await getUnavailableRooms(
       applied.date,
@@ -519,6 +646,7 @@ function renderFilters() {
 }
 
 // MOCKTEST: Keep availability updates when switching libraries.
+// Switch libraries: rebuild the floor list and the time list (each library has its own hours), keep date/accessory filters
 function setLibrary(lib) {
   state.library = lib;
   state.floor = floorsFor(lib)[0];
@@ -526,6 +654,9 @@ function setLibrary(lib) {
 
   renderFloorSelect();
   renderFilters();
+
+  // Must run BEFORE readFilters() so the new library's hours are used.
+  updateTimeOptions();
 
   applied = readFilters();
   return updateAvailability();
@@ -536,24 +667,57 @@ function updateTimeOptions() {
   const now = new Date();
   const selectedDate = $('date').value;
   const currentDate = today();
+/**
+ * Rebuild the time dropdown for the selected date AND selected library.
+ * - Only hours inside that day's operating hours are offered
+ *   (the last start is one hour before closing, since a slot is 1 hour).
+ * - On today's date, hours that already passed are removed.
+ * - On a closed day the dropdown is disabled and searching is blocked.
+ * preferredHour (optional) is kept if it is still allowed; otherwise the
+ * earliest available hour is selected.
+ */
+function updateTimeOptions(preferredHour) {
+  if (!state.library) return;
 
-  const firstHour = 8;
-  const lastHour = 20;
+  const date = $('date').value;
+  const hours = getLibraryHours(date, state.library);
 
-  let earliestHour = firstHour;
+  // Closed all day, no valid date, or no hours left today.
+  if (isClosedAllDay(hours) || getEarliestStart(date, hours) >= hours.close) {
+    timesAvailable = false;
+    $('time').innerHTML = '<option value="">Closed</option>';
+    $('time').disabled = true;
+    $('search').disabled = true;
 
-  if (selectedDate === currentDate) {
-    earliestHour = Math.max(firstHour, now.getHours() + 1);
-  }
-
-  $('time').innerHTML = hourOptions(earliestHour, lastHour, false);
-
-  if (earliestHour > lastHour) {
-    $('time').innerHTML = '';
+    showTimeMessage(
+      !date
+        ? 'Please select a date.'
+        : isClosedAllDay(hours)
+          ? 'The library is closed on this day.'
+          : 'No reservation times remain today.'
+    );
     return;
   }
 
-  $('time').value = earliestHour;
+  timesAvailable = true;
+  $('time').disabled = false;
+  $('search').disabled = false;
+  showTimeMessage('');
+
+  const earliestHour = getEarliestStart(date, hours);
+  const lastHour = hours.close - 1; // a 1-hour slot must end by closing
+
+  $('time').innerHTML = hourOptions(earliestHour, lastHour, false);
+
+  const keep =
+    Number.isFinite(preferredHour) &&
+    preferredHour >= earliestHour &&
+    preferredHour <= lastHour;
+
+  $('time').value = keep ? preferredHour : earliestHour;
+
+  // Safety net: never leave the dropdown blank.
+  if (!$('time').value) $('time').selectedIndex = 0;
 }
 
 // DOED: Open a favorite room from Account Settings.
@@ -632,6 +796,31 @@ async function init() {
 
   $('date').addEventListener('change', () => {
     updateTimeOptions();
+  // Each date has its own hours: rebuild the times when the date changes.
+  // 'input' is also listened to because some browsers fire it before 'change'.
+  const onDateChange = () => {
+    const wasAvailable = timesAvailable;
+    updateTimeOptions();
+    // Closed days block every room right away, and coming back to an open
+    // day clears that blocked state. (Normal searches still use the button.)
+    if (!timesAvailable || !wasAvailable) {
+      applied = readFilters();
+      updateAvailability();
+    }
+  };
+  $('date').addEventListener('change', onDateChange);
+  $('date').addEventListener('input', onDateChange);
+
+  $('search').addEventListener('click', () => {
+    // Refresh the list first: the page may have been open long enough for
+    // the selected hour to pass. The current choice is kept if still valid.
+    updateTimeOptions(Number($('time').value));
+    if (!timesAvailable) return;
+
+    applied = readFilters();
+    state.floor = applied.floor;
+    state.selected = null;
+    updateAvailability();
   });
 
   // MOCKTEST: One Search listener that checks real availability.
@@ -654,6 +843,9 @@ async function init() {
 
   // DOED: Load account favorites after initializing the map.
   await loadFavorites();
+
+  // setLibrary() builds the time list for this library and the chosen date.
+  setLibrary(first);
 }
 
 init().catch((e) => {

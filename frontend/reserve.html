@@ -30,10 +30,15 @@
     <!-- ROOM INFORMATION -->
     <aside class="panel" id="room-info"></aside>
 
+<<<<<<< HEAD
     <!-- RESERVATION DATE AND TIME -->
     <section class="panel">
       <h2>Select date &amp; time</h2>
 
+=======
+        <section class="panel">
+      <h2>Select date & time</h2>
+>>>>>>> lereicel
       <div class="times">
         <div>
           <label for="date">Date</label>
@@ -83,6 +88,7 @@
     >
   </div>
 
+<<<<<<< HEAD
   <div>
     <label for="guest-phone">Phone number</label>
     <input
@@ -90,6 +96,54 @@
       id="guest-phone"
       placeholder="Enter your phone number"
     >
+=======
+      <ol class="rules">
+        <h3>Reservation library rules</h3>
+        <li>Reservations last up to 2 hours.</li>
+        <li>Check in within 15 minutes of your start time, or the room is released.</li>
+        <li>Keep noise low and leave the room clean.</li>
+        <li>Do not leave your belongings unattended.</li>
+        <li>Cancel ahead of time if your plans change.</li>
+      </ol>
+    </section>
+
+    <aside class="panel summary">
+      <h2>Summary</h2>
+      <dl>
+        <dt>Room</dt><dd id="s-room"></dd>
+        <dt>Date</dt><dd id="s-date"></dd>
+        <dt>Time</dt><dd id="s-time"></dd>
+        <dt>Location</dt><dd id="s-floor"></dd>
+      </dl>
+      <p class="msg" id="msg"></p>
+      <button class="btn" id="confirm">Confirm reservation</button>
+      <button class="btn secondary" id="cancel">Cancel</button>
+    </aside>
+  </main>
+
+
+<!-- Reservation Confirmation Popup -->
+<div id="confirmation-modal" class="confirmation-modal" hidden>
+  <div class="confirmation-box">
+    <div class="confirmation-icon">✓</div>
+
+    <h2>Reservation Confirmed!</h2>
+    <p>Your study room has been successfully reserved.</p>
+
+    <div class="confirmation-details">
+      <p><strong>Confirmation Code:</strong> <span id="c-code"></span></p>
+      <p><strong>Name:</strong> <span id="c-name"></span></p>
+      <p><strong>Room:</strong> <span id="c-room"></span></p>
+      <p><strong>Date:</strong> <span id="c-date"></span></p>
+      <p><strong>Time:</strong> <span id="c-time"></span></p>
+      <p><strong>Email:</strong> <span id="c-email"></span></p>
+      <p><strong>Phone:</strong> <span id="c-phone"></span></p>
+    </div>
+
+    <button type="button" class="btn" id="close-confirmation">
+      Done
+    </button>
+>>>>>>> lereicel
   </div>
 </div>
 

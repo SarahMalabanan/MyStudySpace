@@ -1,13 +1,46 @@
-
 /**
  * MyStudySpace - Create Guest Reservation
  * Endpoint: POST /api/reservations/create
  */
 
+require("dotenv").config({ path: ".env.local" });
+
 const pool = require("../../lib/db");
+
+// Email helpers (Resend): confirmation now, reminder 30 minutes before start.
+const { sendConfirmationEmail, scheduleReminderEmail } = require("../../lib/email");
+
+// Per-library, per-day operating hours (enforced here as well as in the browser).
+const { getHoursForDate, isClosedAllDay, formatHour } = require("../../lib/libraryHours");
 
 function sendResponse(res, status, data) {
   return res.status(status).json(data);
+}
+
+// Floor names shown in emails (same as the booking pages).
+function floorName(floor) {
+  const names = { 2: "Second Floor", 3: "Third Floor" };
+  return names[floor] || `Floor ${floor}`;
+}
+
+function decimalToTime(value) {
+  const hour = Math.floor(value);
+
+  const minutes =
+    value % 1 === 0.5
+      ? "30"
+      : "00";
+
+  return `${String(hour).padStart(2, "0")}:${minutes}:00`;
+}
+
+function isValidTimeSlot(value) {
+  return (
+    Number.isFinite(value) &&
+    value >= 0 &&
+    value <= 24 &&
+    (Number.isInteger(value) || value % 1 === 0.5)
+  );
 }
 
 // Get the current date and hour in the library's local timezone.
@@ -44,10 +77,8 @@ module.exports = async function handler(req, res) {
 
       if (
         !/^\d{4}-\d{2}-\d{2}$/.test(date || '') ||
-        !Number.isInteger(startHour) ||
-        !Number.isInteger(endHour) ||
-        startHour < 0 ||
-        endHour > 24 ||
+        !isValidTimeSlot(startHour) ||
+        !isValidTimeSlot(endHour) ||
         endHour <= startHour
       ) {
         return sendResponse(res, 400, {
@@ -57,10 +88,10 @@ module.exports = async function handler(req, res) {
       }
 
       const startTime =
-        `${date} ${String(startHour).padStart(2, "0")}:00:00`;
+  `${date} ${decimalToTime(startHour)}`;
 
-      const endTime =
-        `${date} ${String(endHour).padStart(2, "0")}:00:00`;
+const endTime =
+  `${date} ${decimalToTime(endHour)}`;
 
       const [rows] = await pool.query(
         `SELECT DISTINCT room_id
@@ -106,41 +137,41 @@ module.exports = async function handler(req, res) {
 
   const roomId = Number(req.body?.room_id);
 
-const guestName = String(guest_name || '').trim();
-const guestEmail = String(guest_email || '').trim();
-const guestPhone = String(guest_phone || '').trim();
+  const guestName = String(guest_name || '').trim();
+  const guestEmail = String(guest_email || '').trim();
+  const guestPhone = String(guest_phone || '').trim();
 
-// Validate guest information.
-if (!guestName || guestName.length > 100) {
-  return sendResponse(res, 400, {
-    success: false,
-    message: "Please provide your name."
-  });
-}
+  // Validate guest information.
+  if (!guestName || guestName.length > 100) {
+    return sendResponse(res, 400, {
+      success: false,
+      message: "Please provide your name."
+    });
+  }
 
-if (!guestEmail && !guestPhone) {
-  return sendResponse(res, 400, {
-    success: false,
-    message: "Please provide an email address or phone number."
-  });
-}
+  if (!guestEmail && !guestPhone) {
+    return sendResponse(res, 400, {
+      success: false,
+      message: "Please provide an email address or phone number."
+    });
+  }
 
-if (guestEmail && (
-  guestEmail.length > 255 ||
-  !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(guestEmail)
-)) {
-  return sendResponse(res, 400, {
-    success: false,
-    message: "Please provide a valid email address."
-  });
-}
+  if (guestEmail && (
+    guestEmail.length > 255 ||
+    !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(guestEmail)
+  )) {
+    return sendResponse(res, 400, {
+      success: false,
+      message: "Please provide a valid email address."
+    });
+  }
 
-if (guestPhone && !/^\+?[0-9\s().-]{7,30}$/.test(guestPhone)) {
-  return sendResponse(res, 400, {
-    success: false,
-    message: "Please provide a valid phone number."
-  });
-}
+  if (guestPhone && !/^\+?[0-9\s().-]{7,30}$/.test(guestPhone)) {
+    return sendResponse(res, 400, {
+      success: false,
+      message: "Please provide a valid phone number."
+    });
+  }
 
   // Validate room ID.
   if (!Number.isSafeInteger(roomId) || roomId <= 0) {
@@ -175,15 +206,17 @@ if (guestPhone && !/^\+?[0-9\s().-]{7,30}$/.test(guestPhone)) {
     });
   }
 
-  // Validate reservation hours.
+  // Validate reservation hours (general rules).
+  // The library-specific opening/closing hours are checked below, once we
+  // know which library the room belongs to.
   const startHour = Number(start);
   const endHour = Number(end);
 
   if (
-    !Number.isInteger(startHour) ||
-    !Number.isInteger(endHour) ||
-    startHour < 8 ||
-    endHour > 21 ||
+    !isValidTimeSlot(startHour) ||
+    !isValidTimeSlot(endHour) ||
+    startHour < 0 ||
+    endHour > 24 ||
     endHour <= startHour ||
     endHour - startHour > 2
   ) {
@@ -210,28 +243,48 @@ if (guestPhone && !/^\+?[0-9\s().-]{7,30}$/.test(guestPhone)) {
   }
 
   // Do not allow reservations for hours that have already started.
-  if (date === now.date && startHour <= now.hour) {
-    return sendResponse(res, 400, {
-      success: false,
-      message: "You cannot reserve a time that has already started."
-    });
-  }
+ let currentSlot = now.hour;
+
+const currentMinutes = new Date().getMinutes();
+
+if (currentMinutes > 0 && currentMinutes <= 30) {
+  currentSlot += 0.5;
+}
+else if (currentMinutes > 30) {
+  currentSlot += 1;
+}
+
+if (
+  date === now.date &&
+  startHour < currentSlot
+) {
+  return sendResponse(res, 400, {
+    success: false,
+    message:
+      "You cannot reserve a time that has already passed."
+  });
+}
 
   const startTime =
-    `${date} ${String(startHour).padStart(2, "0")}:00:00`;
+    `${date} ${decimalToTime(startHour)}`;
 
   const endTime =
-    `${date} ${String(endHour).padStart(2, "0")}:00:00`;
+    `${date} ${decimalToTime(endHour)}`;
 
   let connection;
+  let room;
+  let result;
+  let confirmationCode;
 
   try {
     connection = await pool.getConnection();
     await connection.beginTransaction();
 
     // Lock the room so simultaneous bookings cannot overlap.
+    // SELECT * so we also have the room's name, library and floor for the
+    // operating-hours check and the emails.
     const [roomRows] = await connection.query(
-      `SELECT room_id
+      `SELECT *
        FROM rooms
        WHERE room_id = ?
        FOR UPDATE`,
@@ -243,6 +296,27 @@ if (guestPhone && !/^\+?[0-9\s().-]{7,30}$/.test(guestPhone)) {
       return sendResponse(res, 404, {
         success: false,
         message: "Room not found."
+      });
+    }
+
+    room = roomRows[0];
+
+    // Enforce this library's operating hours for the selected day.
+    const hours = getHoursForDate(date, room.library);
+
+    if (isClosedAllDay(hours)) {
+      await connection.rollback();
+      return sendResponse(res, 400, {
+        success: false,
+        message: "The library is closed on that day."
+      });
+    }
+
+    if (startHour < hours.open || endHour > hours.close) {
+      await connection.rollback();
+      return sendResponse(res, 400, {
+        success: false,
+        message: `Reservations must be within the library's hours on that day (${formatHour(hours.open)} – ${formatHour(hours.close)}).`
       });
     }
 
@@ -267,43 +341,91 @@ if (guestPhone && !/^\+?[0-9\s().-]{7,30}$/.test(guestPhone)) {
     }
 
     // Save the guest reservation. No account is required.
-    const confirmationCode = require("crypto")
-  .randomBytes(6)
-  .toString("hex")
-  .toUpperCase();
+    confirmationCode = require("crypto")
+      .randomBytes(6)
+      .toString("hex")
+      .toUpperCase();
 
-const [result] = await connection.query(
-  `INSERT INTO reservations
-     (user_id, guest_name, guest_email, guest_phone,
-      room_id, start_time, end_time, status, confirmation_code)
-   VALUES
-     (NULL, ?, ?, ?, ?, ?, ?, 'confirmed', ?)`,
-  [
-    guestName,
-    guestEmail || null,
-    guestPhone || null,
-    roomId,
-    startTime,
-    endTime,
-    confirmationCode
-  ]
-);
+    [result] = await connection.query(
+      `INSERT INTO reservations
+         (user_id, guest_name, guest_email, guest_phone,
+          room_id, start_time, end_time, status, confirmation_code)
+       VALUES
+         (NULL, ?, ?, ?, ?, ?, ?, 'confirmed', ?)`,
+      [
+        guestName,
+        guestEmail || null,
+        guestPhone || null,
+        roomId,
+        startTime,
+        endTime,
+        confirmationCode
+      ]
+    );
 
     await connection.commit();
 
+    // The reservation is saved: free the database connection before the
+    // (slower) email requests so it isn't held while we wait on Resend.
+    connection.release();
+    connection = null;
+
+    // Emails: never let an email problem make the booking itself fail.
+    if (guestEmail) {
+      const reservation = {
+        reservation_id: result.insertId,
+        guest_name: guestName,
+        guest_email: guestEmail,
+        start_time: startTime,
+        end_time: endTime,
+        confirmation_code: confirmationCode
+      };
+
+      const details = {
+        roomName: room.name || room.room_code || `Room ${roomId}`,
+        location: `${room.library}, ${floorName(room.floor)}`
+      };
+
+      // 1) Confirmation, sent right away.
+      try {
+        await sendConfirmationEmail(reservation, details);
+        console.log("Confirmation email sent for reservation", result.insertId);
+      } catch (emailError) {
+        console.error("Confirmation email failed:", emailError);
+      }
+
+      // 2) Reminder, scheduled with Resend for 30 minutes before the start.
+      try {
+        const reminderId = await scheduleReminderEmail(reservation, details);
+
+        if (reminderId) {
+          // Saved so the reminder can be cancelled if the reservation is.
+          // Requires: ALTER TABLE reservations ADD COLUMN reminder_email_id VARCHAR(64) NULL;
+          await pool.query(
+            `UPDATE reservations
+             SET reminder_email_id = ?
+             WHERE reservation_id = ?`,
+            [reminderId, result.insertId]
+          );
+        }
+      } catch (reminderError) {
+        console.error("Reminder scheduling failed:", reminderError);
+      }
+    }
+
     return sendResponse(res, 201, {
-  success: true,
-  message: "Reservation successfully created.",
-  reservation_id: result.insertId,
-  confirmation_code: confirmationCode,
-  guest_name: guestName,
-  guest_email: guestEmail || null,
-  guest_phone: guestPhone || null,
-  room_id: roomId,
-  start_time: startTime,
-  end_time: endTime,
-  status: "confirmed"
-});
+      success: true,
+      message: "Reservation successfully created.",
+      reservation_id: result.insertId,
+      confirmation_code: confirmationCode,
+      guest_name: guestName,
+      guest_email: guestEmail || null,
+      guest_phone: guestPhone || null,
+      room_id: roomId,
+      start_time: startTime,
+      end_time: endTime,
+      status: "confirmed"
+    });
 
   } catch (error) {
     if (connection) {
