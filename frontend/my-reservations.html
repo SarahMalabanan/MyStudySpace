@@ -7,6 +7,7 @@
 
   <title>My Reservations | MyStudySpace</title>
 
+  <!-- Shared MyStudySpace styling -->
   <link rel="stylesheet" href="css/base.css">
   <link rel="stylesheet" href="css/rooms.css">
   <link rel="stylesheet" href="css/my-reservations.css">
@@ -14,6 +15,21 @@
 
 <body>
 
+  <!--
+    MyStudySpace - My Reservations
+
+    User Story: US-08 - Check In to a Reservation
+    Sprint: 1
+
+    Displays reservation information and allows
+    authenticated students to manage reservations
+    and check in.
+
+    Reservation data must come from the backend.
+    No student IDs or reservations are hard-coded.
+  -->
+
+  <!-- Website navigation -->
   <header class="topbar">
     <span class="logo">MyStudySpace</span>
 
@@ -25,6 +41,7 @@
     </nav>
   </header>
 
+  <!-- Main reservation interface -->
   <main class="layout">
     <section class="panel reservations-panel">
 
@@ -35,18 +52,45 @@
         You can cancel a reservation or check in when it begins.
       </p>
 
-      <div id="reservation-message"
-           role="status"
-           aria-live="polite"></div>
+      <!-- Reservation status and error messages -->
+      <div
+        id="reservation-message"
+        role="status"
+        aria-live="polite">
+      </div>
 
+      <!-- Reservation information from backend -->
       <div id="reservation-details">
         <p>Loading your reservations...</p>
       </div>
 
+      <!--
+        Check-in button remains disabled until
+        an eligible reservation is loaded.
+      -->
+      <button
+        type="button"
+        class="btn"
+        id="check-in-button"
+        disabled>
+        Check In
+      </button>
+
+      <!-- Check-in confirmation or error message -->
+      <p
+        id="check-in-message"
+        role="status"
+        aria-live="polite">
+      </p>
+
     </section>
   </main>
 
+  <!-- Existing reservation management controller -->
   <script src="js/my-reservations.js"></script>
+
+  <!-- Check-in controller -->
+  <script src="js/checkin.js"></script>
 
 </body>
 </html>
