@@ -141,6 +141,6 @@ The deployed application currently requires access to the Kean University VPN.
 **Institution:** Kean University  
 **Purpose:** Study room reservation and management system  
 **Repository:** [GitHub - MyStudySpace](https://github.com/SarahMalabanan/MyStudySpace)
-**FOR FULL DEVELOPER GUIDELINES** [Click here to view the PDF](./Deverloper_Guidelines.pdf)
+**FOR FULL DEVELOPER GUIDELINES** [Click here to view the PDF](./Developer_Guidelines.pdf)
 
 Developed as part of a software engineering course project.
