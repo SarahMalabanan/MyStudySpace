@@ -11,6 +11,7 @@ MyStudySpace is a study room reservation system developed for Kean University. T
 MyStudySpace is being developed with features for both students and library staff.
 
 ### Student Features
+
 - Browse available study rooms.
 - Filter rooms by preferred date, time, floor, and room accessories.
 - View room locations through an interactive library map.
@@ -19,6 +20,7 @@ MyStudySpace is being developed with features for both students and library staf
 - Check in to reservations and report occupancy conflicts.
 
 ### Staff Features
+
 - Access a staff dashboard.
 - Manage study room reservations.
 - Manage room availability.
@@ -52,6 +54,7 @@ Make sure you have the following installed:
 - MySQL
 
 You will also need:
+
 - Access to the Kean University VPN.
 - Access to the project's MySQL database or a separately configured development database.
 - The required project environment variables.
@@ -140,9 +143,14 @@ The deployed application currently requires access to the Kean University VPN.
 
 ## Project Information
 
-**Project:** MyStudySpace  
-**Institution:** Kean University  
-**Purpose:** Study room reservation and management system  
+**Project:** MyStudySpace
+
+**Institution:** Kean University
+
+**Purpose:** Study room reservation and management system
+
 **Repository:** [GitHub - MyStudySpace](https://github.com/SarahMalabanan/MyStudySpace)
+
+**FOR FULL DEVELOPER GUIDELINES** [Click here to view the PDF](./Developer_Guidelines.pdf)
 
 Developed as part of a software engineering course project.
