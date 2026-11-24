@@ -1,3 +1,7 @@
+## Developer Guidelines
+
+For detailed instructions on repository structure, local development, database configuration, software testing, adding new test cases, and continuous integration, please refer to the [MyStudySpace Developer Guidelines](Developer_Guidelines.pdf).
+
 # MyStudySpace
 
 MyStudySpace is a study room reservation system developed for Kean University. The system is designed to make finding and reserving study rooms easier by allowing users to browse room availability, explore room locations through an interactive library map, and manage their reservations.
