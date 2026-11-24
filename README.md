@@ -1,6 +1,8 @@
-## Developer Guidelines
+## Developer Guidelines and User Manual
 
 For detailed instructions on repository structure, local development, database configuration, software testing, adding new test cases, and continuous integration, please refer to the [MyStudySpace Developer Guidelines](Developer_Guidelines.pdf).
+
+For detailed instructions on how to access, navigate, and use MyStudySpace system, please refer to the [MyStudySpace User Manual](MyStudySpace_User_Manual.pdf).
 
 # MyStudySpace
 
